@@ -25,6 +25,15 @@ branches, because they create/destroy server resources or need a server id.
 `src/api.js` is the only place that talks HTTP; `stripMeta()` drops `_role`/
 `_shared`/`_rev`/etc. before sending a plan doc.
 
+**Reminders (web push, cloud only):** `public/sw.js` (push + click handlers,
+copied to dist by Vite), `src/push.js` (SW register + subscribe via server
+VAPID key; lazy — only registers the SW when the user enables). Settings shows
+the control when `this.cloud && pushSupported`. Server side: `server/src/
+reminders.js` (pure scheduling) + `server/src/push.js` (VAPID, send, 60s tick).
+Headless browsers deny the notification permission, so the Enable→subscribe
+path can't be exercised in CI — the server delivery pipeline is tested against
+real FCM in `server/test/delivery.test.js` instead.
+
 Backend + deployment: `server/README.md`, `DEPLOY.md`. Backend runs on
 jarvis-agent under launchd, public via a cloudflared quick-tunnel (URL in
 `netlify.toml` → `VITE_API_URL`; ephemeral — see DEPLOY.md).

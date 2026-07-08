@@ -3,6 +3,7 @@ import { themes, people, monthTH, monthEN, dowTH, dowFullTH, reactionEmojis, goa
 import { assistantReply } from './ai.js'
 import { fmt } from './util.js'
 import { api, hasApi, probe, getToken, setToken } from './api.js'
+import { pushSupported, isSubscribed, enableReminders, disableReminders, sendTestReminder } from './push.js'
 import { AppShell } from './components/Chrome.jsx'
 
 const stripMeta = (p) => { const o = { ...p }; delete o._role; delete o._shared; delete o._rev; delete o._owner; delete o._updatedAt; return o }
@@ -64,6 +65,7 @@ export default class App extends React.Component {
     presenceTick: 0,
     desktop: typeof window !== 'undefined' && window.innerWidth >= 1024,
     inviteUrl: '',
+    pushState: 'off', pushBusy: false,   // 'off' | 'enabled' | 'denied' | 'unsupported'
   }
 
   cloud = false          // true once a reachable backend is confirmed
@@ -148,9 +150,35 @@ export default class App extends React.Component {
       onboarding: !user?.onboarded,   // server-tracked: show onboarding once
     })
     await this.consumeInviteFromUrl()
+    // reflect any existing push subscription
+    if (pushSupported) isSubscribed().then((on) => this.setState({ pushState: on ? 'enabled' : 'off' })).catch(() => {})
     // light polling so a collaborator's edits show up (honest: polling, not sockets)
     clearInterval(this._poll)
     this._poll = setInterval(() => this.refreshCloud(), 20000)
+  }
+
+  enablePush = async () => {
+    this.setState({ pushBusy: true })
+    try {
+      const r = await enableReminders()
+      this.setState({ pushState: r === 'enabled' ? 'enabled' : (r === 'denied' ? 'denied' : 'unsupported') })
+      if (r === 'enabled') this.showToast('🔔', 'เปิดการแจ้งเตือนแล้ว · Reminders on!')
+      else if (r === 'denied') this.showToast('🔕', 'เบราว์เซอร์ปิดการแจ้งเตือนไว้ · Notifications blocked')
+      else this.showToast('😕', 'อุปกรณ์นี้ไม่รองรับ · Not supported here')
+    } catch (e) { this.showToast('😕', 'เปิดไม่สำเร็จ ลองใหม่ · Could not enable') }
+    this.setState({ pushBusy: false })
+  }
+  disablePush = async () => {
+    this.setState({ pushBusy: true })
+    try { await disableReminders(); this.setState({ pushState: 'off' }); this.showToast('🔕', 'ปิดการแจ้งเตือนแล้ว · Reminders off') }
+    catch (e) { /* noop */ }
+    this.setState({ pushBusy: false })
+  }
+  testPush = async () => {
+    try {
+      const { sent } = await sendTestReminder()
+      this.showToast(sent > 0 ? '📨' : '🔔', sent > 0 ? 'ส่งการแจ้งเตือนทดสอบแล้ว · Test reminder sent!' : 'เปิดการแจ้งเตือนก่อนนะคะ · Enable reminders first')
+    } catch (e) { this.showToast('😕', 'ส่งไม่สำเร็จ · Could not send') }
   }
 
   async refreshCloud() {
@@ -1226,6 +1254,10 @@ export default class App extends React.Component {
       }),
       replayOnboarding: this.replayOnboarding, resetDemo: this.resetDemo,
       resetLabel: this.cloud ? '🔄 ซิงก์ใหม่จากคลาวด์ · Re-sync from cloud' : '🧹 รีเซ็ตข้อมูลเดโม · Reset demo data',
+      // real push reminders (cloud + push-capable browser only)
+      showReminders: this.cloud && pushSupported,
+      pushState: st.pushState, pushBusy: st.pushBusy,
+      enablePush: this.enablePush, disablePush: this.disablePush, testPush: this.testPush,
     }
   }
 

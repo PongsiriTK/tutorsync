@@ -4,6 +4,8 @@ import { jwt } from '@elysiajs/jwt'
 import { db, now } from './db.js'
 import { token, otpCode, planId, marketId } from './id.js'
 import { seedPlansFor, seedMarket } from './seed.js'
+import { vapidPublicKey, saveSubscription, removeSubscription, sendToUser, startScheduler } from './push.js'
+import { reminderPayload, nextOccurrence } from './reminders.js'
 
 const PORT = Number(process.env.PORT || 8791)
 const JWT_SECRET = process.env.TS_JWT_SECRET || 'tutorsync-dev-secret-change-me'
@@ -186,6 +188,39 @@ export const app = new Elysia()
       return { plan: { ...plan, _role: 'owner', _shared: false, _rev: 1 } }
     })
 
+    // ----- push reminders -----
+    .get('/push/key', () => ({ key: vapidPublicKey }))
+
+    .post('/push/subscribe', ({ email, body, set }) => {
+      const ok = saveSubscription(email, body.subscription)
+      if (!ok) { set.status = 400; return { error: 'bad_subscription' } }
+      return { subscribed: true }
+    }, { body: t.Object({ subscription: t.Any() }) })
+
+    .post('/push/unsubscribe', ({ body }) => {
+      if (body.endpoint) removeSubscription(String(body.endpoint))
+      return { ok: true }
+    }, { body: t.Object({ endpoint: t.Optional(t.String()) }) })
+
+    // send an immediate notification about the user's next upcoming session
+    // (or a generic one) so reminders are demonstrable without waiting.
+    .post('/push/test', async ({ email }) => {
+      const rows = db.query(`SELECT p.id, p.doc FROM plans p JOIN plan_members m ON m.plan_id = p.id WHERE m.email = ?`).all(email)
+      let best = null
+      for (const r of rows) {
+        let doc; try { doc = JSON.parse(r.doc) } catch { continue }
+        for (const s of doc.sessions || []) {
+          const start = nextOccurrence(now(), s.day, s.time)
+          if (start != null && (!best || start < best.start)) best = { start, session: s, planName: doc.name, categories: doc.categories }
+        }
+      }
+      const payload = best
+        ? reminderPayload({ key: 'test|' + now(), session: best.session, planName: best.planName, window: { kind: 'soon', label: 'อีกไม่นาน' } }, best.categories)
+        : { title: 'TutorSync 🔔', body: 'การแจ้งเตือนพร้อมใช้งานแล้ว · Reminders are on!', tag: 'test', url: '/' }
+      const sent = await sendToUser(email, payload)
+      return { sent }
+    })
+
     .post('/market/publish', ({ email, body }) => {
       const p = body.plan || {}
       const u = db.query('SELECT name FROM users WHERE email = ?').get(email)
@@ -203,5 +238,6 @@ export const app = new Elysia()
 
 if (import.meta.main) {
   app.listen({ port: PORT, hostname: '0.0.0.0' })
+  startScheduler(60 * 1000) // check for due reminders every minute
   console.log(`TutorSync API on http://0.0.0.0:${PORT}  (OTP exposed: ${EXPOSE_OTP})`)
 }

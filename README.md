@@ -39,6 +39,10 @@ template galleries).
   account joins the *same* plan, seeing your sessions and edits. Falls back to
   local **guest mode** automatically when no backend is reachable, so the demo
   always works.
+- 🔔 **Session reminders (web push)** — opt in from Settings and the server
+  notifies you before an upcoming session **even when the app is closed**
+  (a day ahead + shortly before). Includes a "send a test reminder" button.
+  Cloud mode + a browser where you grant notification permission.
 - 🎨 4 pastel accent themes · Thai-first bilingual UI · localStorage
   persistence (guest) / server persistence (cloud)
 - 🖥️ **Responsive desktop viewport** (≥1024px) — sidebar navigation,

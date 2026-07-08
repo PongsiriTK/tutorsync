@@ -55,6 +55,21 @@ db.exec(`
     expires_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS push_subs (
+    endpoint   TEXT PRIMARY KEY,
+    email      TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+    p256dh     TEXT NOT NULL,
+    auth       TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_email ON push_subs(email);
+
+  -- one row per (user, plan, session, window) so a reminder fires at most once
+  CREATE TABLE IF NOT EXISTS reminders_sent (
+    key     TEXT PRIMARY KEY,
+    sent_at INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS market (
     id          TEXT PRIMARY KEY,
     doc         TEXT NOT NULL,

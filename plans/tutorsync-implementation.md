@@ -113,8 +113,20 @@ shared collaboration was previously simulated).
       2/2 green. Guest suite still 20/20 (cloud specs skip without API).
 - [x] Netlify redeployed in cloud mode (`netlify.toml` VITE_API_URL); verified a
       real signup on the public site creates an account on jarvis.
-- [ ] Still outstanding (next): reminders/notifications, tutor-side confirm,
-      real email OTP delivery, live sockets instead of polling.
+### Phase 8 — Session reminders (web push) (added 2026-07-08)
+- [x] `server/src/reminders.js` pure scheduling (next-occurrence, ahead+soon
+      windows, dedupe) + tests; `server/src/push.js` (persisted VAPID,
+      subscribe/send/prune, 60s scheduler); `/push/key|subscribe|unsubscribe|
+      test` routes. Delivery pipeline tested against real FCM.
+- [x] `public/sw.js` service worker; `src/push.js` client (lazy SW register +
+      subscribe); Settings "การแจ้งเตือนคาบเรียน" control (cloud + push only)
+      with enable/disable + test-send; notification icon.
+- [x] Deployed to jarvis (VAPID persisted) + Netlify; verified card/Enable live
+      in cloud mode. 15 server tests + 20 guest e2e green.
+
+- [ ] Still outstanding (next): tutor-side confirmation loop, real email OTP
+      delivery (mailer), live sockets instead of 20s polling, stable public
+      hostname (named CF tunnel / Tailscale Funnel).
 
 ## Validation
 

@@ -38,8 +38,20 @@ the other (last-write-wins; the client also polls every 20s).
 | POST | `/plans/:id/invite` | mint a real invite token |
 | POST | `/invites/:token/accept` | join the shared plan |
 | GET | `/market` · POST `/market/:id/like` · `/market/:id/copy` · `/market/publish` | community templates |
+| GET | `/push/key` | VAPID public key |
+| POST | `/push/subscribe` · `/push/unsubscribe` | manage a browser push subscription |
+| POST | `/push/test` | send an immediate reminder about your next session |
 
 All non-auth routes require `Authorization: Bearer <jwt>`.
+
+## Reminders (web push)
+
+`src/reminders.js` is pure scheduling logic (resolve each session to its next
+occurrence; fire a reminder ~a day ahead and shortly before). `src/push.js`
+holds VAPID keys (env or persisted `data/vapid.json`), stores subscriptions,
+sends via `web-push` (pruning gone endpoints on 404/410), and runs a 60s
+`startScheduler` tick. Tested in `test/reminders.test.js` (windows + dedupe)
+and `test/delivery.test.js` (real encrypt→HTTPS-POST→prune against FCM).
 
 ## Deploy (jarvis-agent)
 

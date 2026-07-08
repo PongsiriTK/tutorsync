@@ -65,10 +65,22 @@ URL, switch to one of:
 - **Tailscale Funnel** — `tailscale funnel 8791` gives a stable `*.ts.net`
   HTTPS hostname; requires enabling Funnel in the tailnet policy.
 
+## Reminders / VAPID
+
+Web-push reminders are on. The server keeps VAPID keys in
+`~/tutorsync-server/data/vapid.json` (auto-generated on first run, persisted so
+subscriptions stay valid across restarts) — **don't delete it** or existing
+subscriptions break. To rotate, remove the file and have users re-enable. A
+60-second scheduler sends reminders; delivery goes straight from jarvis to the
+push services (FCM/Apple/Mozilla) over HTTPS — no extra egress config needed.
+
 ## Not yet real (honest status)
 
-Cloud mode closes the biggest MVP gaps (accounts, cross-device persistence,
-genuinely shared invite-based plans). Still outstanding from the critique:
-session **reminders/notifications**, a **tutor-side confirmation** loop, and
-**real email OTP delivery** (`TS_HIDE_OTP=1` + a mailer). Collaboration is
-last-write-wins with 20s polling, not live CRDT sockets.
+Cloud mode + reminders close most of the MVP gaps (accounts, cross-device
+persistence, genuinely shared invite-based plans, notifications even when
+closed). Still outstanding from the critique: a **tutor-side confirmation**
+loop, **real email OTP delivery** (`TS_HIDE_OTP=1` + a mailer — the OTP is
+currently returned in the response), and **live sockets** instead of 20s
+polling for collaboration. Reminder delivery to a live browser can't be
+verified in headless CI (headless denies the notification permission); the
+server delivery pipeline is tested against real FCM.

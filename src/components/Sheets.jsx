@@ -564,6 +564,26 @@ export function SettingsSheet({ v }) {
               <div style={sx('font-size:12px;font-weight:700;color:#B0A4BC;')}>{v.planCountText}</div>
             </div>
           </div>
+          {v.showReminders && (
+            <>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:18px 0 9px;")}>การแจ้งเตือนคาบเรียน · Session reminders</div>
+              <div style={sx('background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 6px 16px rgba(180,120,150,.09);')}>
+                <div style={sx('display:flex;align-items:center;gap:13px;')}>
+                  <span style={sx('font-size:22px;')}>🔔</span>
+                  <div style={sx('flex:1;min-width:0;')}>
+                    <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;")}>{v.pushState === 'enabled' ? 'เปิดอยู่ · On' : 'เตือนก่อนถึงคาบ · Get reminded'}</div>
+                    <div style={sx('font-size:11.5px;font-weight:700;color:#B0A4BC;line-height:1.35;')}>{v.pushState === 'denied' ? 'เบราว์เซอร์บล็อกไว้ — เปิดในการตั้งค่าเบราว์เซอร์' : 'แจ้งเตือนแม้ปิดแอป · Even when the app is closed'}</div>
+                  </div>
+                  {v.pushState === 'enabled'
+                    ? <button onClick={v.disablePush} disabled={v.pushBusy} style={sx("border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:9px 13px;cursor:pointer;flex:none;")}>ปิด</button>
+                    : <button onClick={v.enablePush} disabled={v.pushBusy} style={sx(`border:none;border-radius:13px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:9px 13px;cursor:pointer;flex:none;box-shadow:0 6px 14px ${v.g.pcShadow};`)}>{v.pushBusy ? '…' : 'เปิด · Enable'}</button>}
+                </div>
+                {v.pushState === 'enabled' && (
+                  <button onClick={v.testPush} style={sx(`margin-top:11px;width:100%;border:2px solid ${v.g.pcBorder};border-radius:13px;background:#fff;color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:10px;cursor:pointer;`)}>📨 ส่งการแจ้งเตือนทดสอบ · Send a test reminder</button>
+                )}
+              </div>
+            </>
+          )}
           <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:18px 0 9px;")}>ธีมสี · App accent</div>
           <div style={sx('display:flex;gap:11px;')}>
             {v.themeSwatches.map((sw) => <button key={sw.key} onClick={sw.onTap} style={sx(sw.style)}>{sw.active && <span style={sx('color:#fff;font-size:18px;font-weight:800;')}>✓</span>}</button>)}

@@ -136,4 +136,35 @@ test('market copy adds an owned plan and bumps uses', async () => {
   expect(state.plans.some((p) => p.name === item.name)).toBe(true)
 })
 
+test('push: exposes VAPID key, stores a subscription, unsubscribes', async () => {
+  const tok = await signIn('push@test.dev')
+  const [ks, keyRes] = await json(await call('/push/key', { headers: authed(tok) }))
+  expect(ks).toBe(200)
+  expect(typeof keyRes.key).toBe('string')
+  expect(keyRes.key.length).toBeGreaterThan(80) // base64url VAPID public key
+
+  const sub = { endpoint: 'https://push.example/ep-' + Date.now(), keys: { p256dh: 'BPabc', auth: 'xyz' } }
+  const [ss, subRes] = await json(await call('/push/subscribe', { method: 'POST', headers: authed(tok), body: { subscription: sub } }))
+  expect(ss).toBe(200)
+  expect(subRes.subscribed).toBe(true)
+
+  // a bad subscription is rejected
+  const [bs] = await json(await call('/push/subscribe', { method: 'POST', headers: authed(tok), body: { subscription: { endpoint: 'x' } } }))
+  expect(bs).toBe(400)
+
+  // /push/test resolves (0 delivered because the fake endpoint isn't a real push service)
+  const [ts, testRes] = await json(await call('/push/test', { method: 'POST', headers: authed(tok) }))
+  expect(ts).toBe(200)
+  expect(typeof testRes.sent).toBe('number')
+
+  const [us, unsub] = await json(await call('/push/unsubscribe', { method: 'POST', headers: authed(tok), body: { endpoint: sub.endpoint } }))
+  expect(us).toBe(200)
+  expect(unsub.ok).toBe(true)
+})
+
+test('push endpoints require auth', async () => {
+  const [s1] = await json(await call('/push/subscribe', { method: 'POST', body: { subscription: {} } }))
+  expect(s1).toBe(401)
+})
+
 process.on('exit', () => { try { rmSync(process.env.TS_DB) } catch {} })
