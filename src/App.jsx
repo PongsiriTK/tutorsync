@@ -53,7 +53,7 @@ export default class App extends React.Component {
     editTargetOpen: false, editTargetVal: null,
     planEditOpen: false, editDraft: null,
     pendingMove: null,
-    reschedOpen: false, reschedId: null,
+    reschedOpen: false, reschedId: null, reschedMode: 'move',
     publishOpen: false,
     booked: null,
     chatInput: '', commentDraft: '',
@@ -498,6 +498,24 @@ export default class App extends React.Component {
     })
   }
 
+  // A booking needs tutor confirmation only if a real tutor (another member)
+  // has joined this plan. Solo → auto-confirmed (no one to wait on).
+  planHasTutor(plan) {
+    if (!this.cloud || !plan || !plan._members) return false
+    const me = (this.state.authEmail || '').toLowerCase()
+    return plan._members.some((m) => (m.email || '').toLowerCase() !== me)
+  }
+  amOwner(plan) { return !plan || !this.cloud ? true : (plan._role ? plan._role === 'owner' : plan._owner === (this.state.authEmail || '').toLowerCase()) }
+  sessionStatus(s) { return (s && s.status) || 'confirmed' }
+  statusMeta(status) {
+    return {
+      pending:    { label: '⏳ รอยืนยัน · Pending', color: '#F4A94C', soft: '#FEF0DC' },
+      confirmed:  { label: '✓ ยืนยันแล้ว · Confirmed', color: '#4FC7A8', soft: '#E4F7F1' },
+      declined:   { label: '✕ ปฏิเสธแล้ว · Declined', color: '#E06B85', soft: '#FBEAF0' },
+      reschedule: { label: '🗓️ เสนอเลื่อน · Reschedule', color: '#6AAEF5', soft: '#E7F1FE' },
+    }[status] || { label: '', color: '#B0A4BC', soft: '#F1ECF5' }
+  }
+
   saveSession = () => {
     const st = this.state, plan = this.activePlan()
     if (!plan) return
@@ -505,16 +523,50 @@ export default class App extends React.Component {
     const subj = plan.categories[subjKey]
     const cost = catCost(subj, st.addHours)
     const fit = plan.kind === 'fitness' ? { sets: st.addSets, reps: st.addReps, intensity: st.addIntensity } : {}
+    const pending = this.planHasTutor(plan)
+    let newId = null
     this.setState((s) => {
       const plans = s.plans.map((p) => {
         if (p.id !== s.activePlanId) return p
         const nid = Math.max(0, ...p.sessions.map((x) => x.id)) + 1
-        return { ...p, sessions: [...p.sessions, { id: nid, day: st.addDate, subj: subjKey, time: st.addTime, hours: st.addHours, cost, done: false, reactions: {}, comments: [], ...fit }] }
+        newId = nid
+        return { ...p, sessions: [...p.sessions, { id: nid, day: st.addDate, subj: subjKey, time: st.addTime, hours: st.addHours, cost, done: false, status: pending ? 'pending' : 'confirmed', reactions: {}, comments: [], ...fit }] }
       })
       // Peloton-style confirmation instead of toast-only feedback
-      return { plans, addOpen: false, dayOpen: false, booked: { subjKey, day: st.addDate, time: st.addTime, hours: st.addHours, cost } }
+      return { plans, addOpen: false, dayOpen: false, booked: { subjKey, day: st.addDate, time: st.addTime, hours: st.addHours, cost, pending } }
     })
+    if (pending && this.cloud) this.notifyPlan('booked', newId)
   }
+  // fire a confirmation-loop notification after the plan doc has synced
+  notifyPlan(event, sessionId) {
+    if (!this.cloud) return
+    const id = this.state.activePlanId
+    setTimeout(() => { api.notify(id, event, sessionId).catch(() => {}) }, 500)
+  }
+
+  setSessionStatus(id, patch, event) {
+    this.setState((s) => {
+      const plans = s.plans.map((p) => p.id === s.activePlanId ? { ...p, sessions: p.sessions.map((x) => x.id === id ? { ...x, ...patch } : x) } : p)
+      return { plans }
+    })
+    if (event) this.notifyPlan(event, id)
+  }
+  confirmSession = (id) => { this.setSessionStatus(id, { status: 'confirmed', proposedDay: null }, 'confirmed'); this.showToast('✅', 'ยืนยันคาบแล้ว · Session confirmed') }
+  declineSession = (id) => { this.setSessionStatus(id, { status: 'declined', proposedDay: null }, 'declined'); this.showToast('🙏', 'ปฏิเสธคาบแล้ว · Session declined') }
+  proposeReschedule(id, day) {
+    this.setSessionStatus(id, { status: 'reschedule', proposedDay: day }, 'proposed')
+    this.setState({ reschedOpen: false })
+    this.showToast('🗓️', 'เสนอเลื่อนไปวันที่ ' + day + ' แล้ว · Proposed the ' + day + 'th')
+  }
+  acceptProposal = (id) => {
+    this.setState((s) => {
+      const plans = s.plans.map((p) => p.id === s.activePlanId ? { ...p, sessions: p.sessions.map((x) => x.id === id ? { ...x, day: x.proposedDay || x.day, status: 'confirmed', proposedDay: null } : x) } : p)
+      return { plans }
+    })
+    this.notifyPlan('accepted', id)
+    this.showToast('👍', 'ยอมรับการเลื่อนแล้ว · Reschedule accepted')
+  }
+  keepOriginal = (id) => { this.setSessionStatus(id, { status: 'confirmed', proposedDay: null }, null); this.showToast('✓', 'คงวันเดิมไว้ · Kept original day') }
   closeBooked = () => this.setState({ booked: null })
   viewBookedDay = () => this.setState((s) => ({ booked: null, dayOpen: true, selDay: s.booked ? s.booked.day : s.selDay, tab: 'cal' }))
 
@@ -703,7 +755,17 @@ export default class App extends React.Component {
   rescheduleSlot = () => {
     const plan = this.activePlan(); if (!plan) return
     const s = plan.sessions.find((x) => x.id === this.state.selSlot); if (!s) return
-    this.setState({ reschedOpen: true, reschedId: this.state.selSlot })
+    this.setState({ reschedOpen: true, reschedId: this.state.selSlot, reschedMode: 'move' })
+  }
+  proposeSlot = () => {
+    const plan = this.activePlan(); if (!plan) return
+    const s = plan.sessions.find((x) => x.id === this.state.selSlot); if (!s) return
+    this.setState({ reschedOpen: true, reschedId: this.state.selSlot, reschedMode: 'propose' })
+  }
+  pickReschedDay(day) {
+    const id = this.state.reschedId
+    if (this.state.reschedMode === 'propose') { this.proposeReschedule(id, day); this.setState({ slotOpen: false }); return }
+    this.moveSingleSession(day)
   }
   moveSingleSession(day) {
     const id = this.state.reschedId
@@ -760,6 +822,8 @@ export default class App extends React.Component {
         big: m.big, color: m.t.pc, pctText: m.pct + '%',
         barStyle: `height:100%;width:${m.pct}%;border-radius:8px;background:linear-gradient(90deg,${m.t.pc},${m.t.pc2});transition:width .6s cubic-bezier(.34,1.56,.64,1);`,
         avatars, metaText: m.count + ' คาบ · ' + insKeys.length + ' คน',
+        shared: !!p._shared,
+        sharedStyle: `flex:none;background:#EDE7FA;color:#8A6FD0;border-radius:11px;padding:4px 9px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10px;`,
       }
     })
 
@@ -959,6 +1023,9 @@ export default class App extends React.Component {
           subjTh: subj.th, insInitials: ins.initials,
           insAvatar: `width:22px;height:22px;border-radius:50%;background:${ins.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10px;`,
           insEn: ins.en, cost: f(s.cost), hasReactions: rk.length > 0, reactSummary: rk.map((k) => k + s.reactions[k]).join(' '),
+          status: this.sessionStatus(s), showStatus: this.sessionStatus(s) !== 'confirmed',
+          statusLabel: this.statusMeta(this.sessionStatus(s)).label,
+          statusStyle: `border-radius:8px;padding:2px 8px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10px;background:${this.statusMeta(this.sessionStatus(s)).soft};color:${this.statusMeta(this.sessionStatus(s)).color};`,
         }
       })
     }
@@ -983,7 +1050,44 @@ export default class App extends React.Component {
         slot.noComments = s.comments.length === 0
         slot.isFitness = plan.kind === 'fitness' && (s.sets || s.reps)
         slot.sets = s.sets || '—'; slot.reps = s.reps || '—'; slot.intensity = s.intensity || '—'
+
+        // ---- confirmation loop ----
+        const status = this.sessionStatus(s)
+        const owner = this.amOwner(plan)
+        const sm = this.statusMeta(status)
+        slot.statusLabel = sm.label
+        slot.statusStyle = `display:inline-block;background:rgba(255,255,255,.28);color:#fff;border-radius:10px;padding:4px 11px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;margin-top:8px;`
+        // tutor (non-owner) acting on a pending request
+        slot.tutorCanAct = !owner && status === 'pending'
+        // owner responding to a tutor's reschedule proposal
+        slot.ownerRespond = owner && status === 'reschedule'
+        slot.proposedDay = s.proposedDay || null
+        slot.proposedText = s.proposedDay ? ('ติวเตอร์เสนอเลื่อนไปวันที่ ' + s.proposedDay + ' · Tutor proposed the ' + s.proposedDay + 'th') : ''
+        // owner waiting note
+        slot.ownerWaiting = owner && status === 'pending'
+        // owner may directly reschedule a confirmed/own session; hide the plain
+        // reschedule button while a proposal is pending owner response
+        slot.showReschedule = owner && status !== 'reschedule'
+        slot.confirmSession = () => this.confirmSession(s.id)
+        slot.declineSession = () => this.declineSession(s.id)
+        slot.proposeSlot = () => this.proposeSlot()
+        slot.acceptProposal = () => this.acceptProposal(s.id)
+        slot.keepOriginal = () => this.keepOriginal(s.id)
       }
+    }
+
+    // ---- tutor "requests" inbox (non-owner member sees pending sessions) ----
+    let tutorRequests = []
+    if (plan && this.cloud && !this.amOwner(plan)) {
+      tutorRequests = plan.sessions.filter((s) => this.sessionStatus(s) === 'pending').map((s) => {
+        const subj = plan.categories[s.subj] || Object.values(plan.categories)[0]
+        return {
+          id: s.id, title: subj.th + ' · ' + subj.en, sub: 'วันที่ ' + s.day + ' · ' + s.time,
+          stripe: `width:4px;border-radius:3px;background:${subj.color};flex:none;`,
+          onOpen: () => this.setState({ slotOpen: true, selSlot: s.id }),
+          onConfirm: () => this.confirmSession(s.id),
+        }
+      })
     }
 
     // ---- add form ----
@@ -1035,7 +1139,7 @@ export default class App extends React.Component {
           sub: st.booked.day + ' ' + monthTH[st.month] + ' · ' + st.booked.time,
           meta: ins.en + ' · ' + st.booked.hours + ' ชม.' + (st.booked.cost > 0 ? ' · ฿' + f(st.booked.cost) : ' · ฟรี'),
           chipStyle: `display:inline-flex;align-items:center;gap:6px;background:${subj.soft};color:${subj.color};border-radius:12px;padding:5px 12px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;`,
-          short: subj.short,
+          short: subj.short, pending: !!st.booked.pending,
         }
       }
     }
@@ -1195,6 +1299,7 @@ export default class App extends React.Component {
       setEdName: (e) => this.setState((s) => ({ editDraft: { ...s.editDraft, name: e.target.value } })),
       addCat: this.addCat, savePlanEdit: this.savePlanEdit, deletePlan: this.deletePlan,
       members, invite: this.doInvite, inviteUrl: st.inviteUrl, cloud: this.cloud,
+      tutorRequests, isTutorView: plan ? (this.cloud && !this.amOwner(plan)) : false,
       messages, aiThinking: st.aiThinking, chips,
       chatInput: st.chatInput, setChatInput: (e) => this.setState({ chatInput: e.target.value }), chatKey: (e) => { if (e.key === 'Enter') this.sendChat() }, sendChat: this.sendChat,
       toast: st.toast,
@@ -1207,13 +1312,14 @@ export default class App extends React.Component {
       confirmMove: this.confirmMove, cancelMove: this.cancelMove, stop: (e) => e.stopPropagation(),
       reschedOpen: st.reschedOpen, closeResched: () => this.setState({ reschedOpen: false }),
       reschedMonth: monthTH[st.month],
+      reschedPropose: st.reschedMode === 'propose',
       reschedDays: (() => {
         if (!st.reschedOpen || !plan) return []
         const cur = (plan.sessions.find((x) => x.id === st.reschedId) || {}).day
         const dm = this.daysInMonth(st.year, st.month)
         return Array.from({ length: dm }).map((_, i) => {
           const d = i + 1, isCur = d === cur, isToday = d === TODAY, has = this.sessionsFor(plan, d).length > 0
-          return { num: d, onTap: () => this.moveSingleSession(d), style: `aspect-ratio:1;border:none;border-radius:12px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;${isCur ? `background:${t.pc};color:#fff;box-shadow:0 6px 14px ${t.shadow};` : (has ? `background:${t.soft};color:${t.pc};` : 'background:#F4EFF7;color:#8A7C93;')}${isToday && !isCur ? `outline:2px solid ${t.pc};outline-offset:-2px;` : ''}` }
+          return { num: d, onTap: () => this.pickReschedDay(d), style: `aspect-ratio:1;border:none;border-radius:12px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;${isCur ? `background:${t.pc};color:#fff;box-shadow:0 6px 14px ${t.shadow};` : (has ? `background:${t.soft};color:${t.pc};` : 'background:#F4EFF7;color:#8A7C93;')}${isToday && !isCur ? `outline:2px solid ${t.pc};outline-offset:-2px;` : ''}` }
         })
       })(),
       dayOpen: st.dayOpen, closeDay: () => this.setState({ dayOpen: false }), dayLabelTH, dayLabelEN, daySessions, dayEmpty,

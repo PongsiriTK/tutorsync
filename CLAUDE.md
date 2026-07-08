@@ -25,6 +25,19 @@ branches, because they create/destroy server resources or need a server id.
 `src/api.js` is the only place that talks HTTP; `stripMeta()` drops `_role`/
 `_shared`/`_rev`/etc. before sending a plan doc.
 
+**Tutor-side confirmation loop (cloud):** sessions carry `status`
+(pending/confirmed/declined/reschedule + `proposedDay`); `sessionStatus()`
+treats missing status as confirmed (back-compat with seeds). `saveSession`
+sets `pending` only when `planHasTutor(plan)` (a non-owner member exists in
+`plan._members`, which the server now includes in /state) — else auto-confirms.
+Actions (`confirmSession`/`declineSession`/`proposeReschedule`/`acceptProposal`/
+`keepOriginal`) mutate the shared plan doc → sync via the normal PUT, so both
+sides converge (poll/reload); `notifyPlan(event,sessionId)` → `POST /plans/:id/
+notify` pushes a server-templated message to the *other* members. Role gate:
+`amOwner(plan)` (via `_role`). Tutor UI = slot-sheet actions + Team-tab
+"awaiting your confirmation" inbox; owner UI = pending note + accept/keep a
+proposal. Shared plans show a 🔗 badge (`planCards[].shared` from `_shared`).
+
 **Reminders (web push, cloud only):** `public/sw.js` (push + click handlers,
 copied to dist by Vite), `src/push.js` (SW register + subscribe via server
 VAPID key; lazy — only registers the SW when the user enables). Settings shows

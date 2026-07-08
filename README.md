@@ -43,6 +43,11 @@ template galleries).
   notifies you before an upcoming session **even when the app is closed**
   (a day ahead + shortly before). Includes a "send a test reminder" button.
   Cloud mode + a browser where you grant notification permission.
+- ✅ **Tutor-side confirmation** (two-sided) — once you invite a tutor to a
+  plan, booking a session sends them a **request**; they Confirm, Decline, or
+  **Propose a new time**, and you're notified of their response (accept a
+  proposal to move the session). Sessions carry a pending/confirmed status;
+  solo plans auto-confirm. Shared plans are badged 🔗.
 - 🎨 4 pastel accent themes · Thai-first bilingual UI · localStorage
   persistence (guest) / server persistence (cloud)
 - 🖥️ **Responsive desktop viewport** (≥1024px) — sidebar navigation,

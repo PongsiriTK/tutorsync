@@ -44,6 +44,7 @@ export const api = {
   deletePlan: (id) => req('/plans/' + id, { method: 'DELETE' }),
   invite: (id) => req('/plans/' + id + '/invite', { method: 'POST' }),
   acceptInvite: (token) => req('/invites/' + token + '/accept', { method: 'POST' }),
+  notify: (id, event, sessionId) => req('/plans/' + id + '/notify', { method: 'POST', body: { event, sessionId } }),
   likeMarket: (id) => req('/market/' + id + '/like', { method: 'POST' }),
   copyMarket: (id) => req('/market/' + id + '/copy', { method: 'POST' }),
   publish: (plan) => req('/market/publish', { method: 'POST', body: { plan } }),

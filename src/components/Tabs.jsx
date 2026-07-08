@@ -213,6 +213,23 @@ function PublishButton({ v }) {
 export function TeamTab({ v }) {
   return (
     <div style={sx(v.desktop ? 'display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;padding-top:4px;' : 'display:flex;flex-direction:column;gap:12px;padding-top:4px;')}>
+      {v.isTutorView && v.tutorRequests.length > 0 && (
+        <div style={sx(`background:#fff;border-radius:22px;padding:15px 16px;box-shadow:0 10px 26px rgba(180,120,150,.14);animation:ts-fadeup .35s ease both;${v.desktop ? 'grid-column:1/-1;' : ''}`)}>
+          <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14.5px;color:#4A3F55;margin-bottom:10px;")}>⏳ {v.tutorRequests.length} คาบรอคุณยืนยัน · Awaiting your confirmation</div>
+          <div style={sx('display:flex;flex-direction:column;gap:9px;')}>
+            {v.tutorRequests.map((r) => (
+              <div key={r.id} style={sx('display:flex;align-items:center;gap:11px;background:#FFF8FB;border-radius:16px;padding:11px 12px;')}>
+                <div style={sx(r.stripe + 'align-self:stretch;')} />
+                <button onClick={r.onOpen} style={sx('flex:1;min-width:0;border:none;background:none;text-align:left;cursor:pointer;')}>
+                  <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;")}>{r.title}</div>
+                  <div style={sx('font-size:11px;font-weight:700;color:#B0A4BC;')}>{r.sub}</div>
+                </button>
+                <button onClick={r.onConfirm} style={sx("border:none;border-radius:12px;background:#4FC7A8;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;padding:8px 13px;cursor:pointer;flex:none;")}>ยืนยัน</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={sx(`background:linear-gradient(135deg,${v.pt.pc},${v.pt.pc2});border-radius:26px;padding:20px;box-shadow:0 14px 30px ${v.pt.shadow};color:#fff;animation:ts-fadeup .4s ease both;${v.desktop ? 'grid-column:1/-1;' : ''}`)}>
         <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;")}>แชร์แพลนนี้ 🤝</div>
         <div style={sx('font-size:13px;font-weight:700;opacity:.92;margin-top:2px;')}>Invite people to view &amp; react in real time</div>

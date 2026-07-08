@@ -83,6 +83,64 @@ test('real invite: owner shares a plan; invitee joins and sees the same sessions
   // guest is now viewing the shared plan calendar
   await expect(guest.locator('[data-day]').first()).toBeVisible()
 
-  // guest reacts on a session → owner sees it after the ~20s poll (force a reload to check fast)
   await ownerCtx.close(); await guestCtx.close()
+})
+
+test('tutor-side confirmation loop: pending → tutor confirms → owner sees confirmed', async ({ browser }) => {
+  test.skip(!API, 'cloud API not configured')
+  const ownerCtx = await browser.newContext()
+  const tutorCtx = await browser.newContext()
+  const owner = await ownerCtx.newPage()
+  const tutor = await tutorCtx.newPage()
+  const ownerEmail = `cown_${Date.now()}@e2e.dev`
+  const tutorEmail = `ctut_${Date.now()}@e2e.dev`
+
+  // owner signs in, opens a plan, invites a tutor
+  await signInFresh(owner, ownerEmail)
+  await tap(owner.getByText('University Entrance Prep'))
+  await tap(owner.getByText('ทีม', { exact: true }))
+  await tap(owner.getByText('🔗 คัดลอกลิงก์เชิญ · Copy invite link'))
+  await expect(owner.getByText(/\/\?invite=/)).toBeVisible({ timeout: 10000 })
+  const inviteUrl = (await owner.getByText(/\/\?invite=/).innerText()).trim()
+
+  // tutor joins via the invite link
+  await signInFresh(tutor, tutorEmail)
+  await tutor.goto(inviteUrl.slice(inviteUrl.indexOf('/?invite=')))
+  await tutor.waitForLoadState('networkidle')
+  await expect(tutor.getByText('เข้าร่วมแพลนที่แชร์แล้ว · Joined shared plan!')).toBeVisible({ timeout: 15000 })
+
+  // owner reloads so the client sees the new member, then books → PENDING (tutor exists)
+  await owner.reload(); await owner.waitForLoadState('networkidle')
+  await tap(owner.getByText('University Entrance Prep'))
+  await tap(owner.locator('button[aria-label="Add session"]'))
+  await tap(owner.getByText('บันทึกคาบ · Book session 🎉'))
+  await expect(owner.getByText('ส่งคำขอจองแล้ว!')).toBeVisible({ timeout: 10000 }) // "request sent", not "booked"
+  await tap(owner.getByText('ดูวันนั้น · View day 🗓️'))
+  await expect(owner.getByText(/⏳ รอยืนยัน/).first()).toBeVisible({ timeout: 10000 }) // pending pill
+  await owner.waitForTimeout(2000) // let the debounced sync push the pending session to the server
+
+  // tutor → opens the SHARED plan (badged 🔗 แชร์, distinct from their own seeded
+  // copy) and confirms the request from the inbox (reload-retry for sync lag)
+  const openTutorInbox = async () => {
+    await tutor.reload(); await tutor.waitForLoadState('networkidle')
+    await tap(tutor.locator('button', { hasText: 'University Entrance Prep' }).filter({ hasText: 'แชร์' }))
+    await tap(tutor.getByText('ทีม', { exact: true }))
+  }
+  await openTutorInbox()
+  const inbox = tutor.getByText(/คาบรอคุณยืนยัน · Awaiting your confirmation/)
+  if (!(await inbox.isVisible().catch(() => false))) { await tutor.waitForTimeout(2000); await openTutorInbox() }
+  await expect(inbox).toBeVisible({ timeout: 10000 })
+  await tap(tutor.getByText('ยืนยัน', { exact: true }).first())
+  await expect(tutor.getByText('ยืนยันคาบแล้ว · Session confirmed')).toBeVisible({ timeout: 10000 })
+  await tutor.waitForTimeout(2000) // sync the confirmed status back
+
+  // owner reloads → the session is now confirmed (no pending pill on that day)
+  await owner.reload(); await owner.waitForLoadState('networkidle')
+  await tap(owner.getByText('University Entrance Prep'))
+  const today = await owner.evaluate(() => new Date().getDate()) // booking defaults to today
+  await owner.locator(`[data-day="${today}"]`).click({ force: true })
+  await expect(owner.getByText(/เพิ่มคาบ · Add session/)).toBeVisible({ timeout: 10000 }) // day sheet open
+  await expect(owner.getByText(/⏳ รอยืนยัน/)).toHaveCount(0)
+
+  await ownerCtx.close(); await tutorCtx.close()
 })

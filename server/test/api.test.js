@@ -162,6 +162,36 @@ test('push: exposes VAPID key, stores a subscription, unsubscribes', async () =>
   expect(unsub.ok).toBe(true)
 })
 
+test('state exposes real plan membership; notify targets the other members', async () => {
+  const owner = await signIn('confown@test.dev')
+  const [, st] = await json(await call('/state', { headers: authed(owner) }))
+  const pid = st.plans[0].id
+  // solo: only the owner is a member
+  expect(st.plans[0]._members.map((m) => m.email)).toEqual(['confown@test.dev'])
+
+  // invite a tutor, who joins
+  const [, inv] = await json(await call('/plans/' + pid + '/invite', { method: 'POST', headers: authed(owner) }))
+  const tutor = await signIn('conftutor@test.dev')
+  await call('/invites/' + inv.token + '/accept', { method: 'POST', headers: authed(tutor) })
+
+  // now the plan has two members
+  const [, st2] = await json(await call('/state', { headers: authed(owner) }))
+  const shared = st2.plans.find((p) => p.id === pid)
+  expect(shared._members.map((m) => m.email).sort()).toEqual(['confown@test.dev', 'conftutor@test.dev'])
+
+  // owner notifies "booked" → recipients = the tutor (not the owner)
+  const [ns2, notif2] = await json(await call('/plans/' + pid + '/notify', { method: 'POST', headers: authed(owner), body: { event: 'booked' } }))
+  expect(ns2).toBe(200)
+  expect(notif2.recipients).toBe(1)
+
+  // a bad event is rejected; a non-member cannot notify
+  const [be] = await json(await call('/plans/' + pid + '/notify', { method: 'POST', headers: authed(owner), body: { event: 'nope' } }))
+  expect(be).toBe(400)
+  const outsider = await signIn('confout@test.dev')
+  const [fe] = await json(await call('/plans/' + pid + '/notify', { method: 'POST', headers: authed(outsider), body: { event: 'booked' } }))
+  expect(fe).toBe(403)
+})
+
 test('push endpoints require auth', async () => {
   const [s1] = await json(await call('/push/subscribe', { method: 'POST', body: { subscription: {} } }))
   expect(s1).toBe(401)

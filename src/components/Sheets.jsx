@@ -54,9 +54,10 @@ export function DaySheet({ v }) {
               <button key={ds.id} onClick={ds.onTap} style={sx(ds.cardStyle)}>
                 <div style={sx(ds.stripeStyle)} />
                 <div style={sx('flex:1;min-width:0;text-align:left;')}>
-                  <div style={sx('display:flex;align-items:center;gap:7px;')}>
+                  <div style={sx('display:flex;align-items:center;gap:7px;flex-wrap:wrap;')}>
                     <span style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;")}>{ds.time}</span>
                     <span style={sx(ds.pillStyle)}>{ds.short}</span>
+                    {ds.showStatus && <span style={sx(ds.statusStyle)}>{ds.statusLabel}</span>}
                   </div>
                   <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:14.5px;color:#4A3F55;margin-top:3px;line-height:1.1;")}>{ds.subjTh}</div>
                   <div style={sx('display:flex;align-items:center;gap:6px;margin-top:6px;')}>
@@ -91,6 +92,7 @@ export function SlotSheet({ v }) {
               <span style={sx("display:inline-block;background:rgba(255,255,255,.28);color:#fff;border-radius:10px;padding:3px 10px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;")}>{s.short}</span>
               <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#fff;margin-top:8px;line-height:1.1;")}>{s.subjTh}</div>
               <div style={sx('font-size:13px;font-weight:700;color:rgba(255,255,255,.9);')}>{s.subjEn}</div>
+              {s.statusLabel && <div style={sx(s.statusStyle)}>{s.statusLabel}</div>}
             </div>
             <button onClick={v.closeSlot} aria-label="Close" style={sx('width:34px;height:34px;border:none;border-radius:13px;background:rgba(255,255,255,.25);color:#fff;font-size:18px;font-weight:800;cursor:pointer;flex:none;')}>✕</button>
           </div>
@@ -115,7 +117,32 @@ export function SlotSheet({ v }) {
               <div style={sx('flex:1;background:#fff;border-radius:14px;padding:11px;text-align:center;box-shadow:0 4px 12px rgba(180,120,150,.09);')}><div style={sx('font-size:10.5px;font-weight:800;color:#B0A4BC;')}>เข้มข้น · INT</div><div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;color:#4A3F55;margin-top:2px;")}>{s.intensity}</div></div>
             </div>
           )}
-          <button onClick={v.rescheduleSlot} style={sx(`margin-top:12px;width:100%;border:2px solid ${v.g.pcBorder};border-radius:16px;background:#fff;color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;`)}>🗓️ ย้ายวัน · Reschedule</button>
+          {/* ---- confirmation loop ---- */}
+          {s.tutorCanAct && (
+            <div style={sx(`margin-top:12px;background:#FFF3E6;border-radius:16px;padding:13px 14px;`)}>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;color:#8A7C93;margin-bottom:9px;")}>คุณเป็นติวเตอร์ของแพลนนี้ · Respond to this request</div>
+              <div style={sx('display:flex;gap:8px;')}>
+                <button onClick={s.confirmSession} style={sx("flex:1.4;border:none;border-radius:14px;background:#4FC7A8;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:12px;cursor:pointer;")}>✅ ยืนยัน · Confirm</button>
+                <button onClick={s.proposeSlot} style={sx("flex:1.3;border:none;border-radius:14px;background:#6AAEF5;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:12px;cursor:pointer;")}>🗓️ เสนอเลื่อน</button>
+                <button onClick={s.declineSession} style={sx("flex:1;border:none;border-radius:14px;background:#F1E8F5;color:#E06B85;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:12px;cursor:pointer;")}>ปฏิเสธ</button>
+              </div>
+            </div>
+          )}
+          {s.ownerRespond && (
+            <div style={sx('margin-top:12px;background:#E7F1FE;border-radius:16px;padding:13px 14px;')}>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;color:#4A3F55;margin-bottom:4px;")}>🗓️ {s.proposedText}</div>
+              <div style={sx('display:flex;gap:8px;margin-top:9px;')}>
+                <button onClick={s.acceptProposal} style={sx(`flex:1.4;border:none;border-radius:14px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:12px;cursor:pointer;`)}>👍 ตกลง · Accept</button>
+                <button onClick={s.keepOriginal} style={sx("flex:1;border:none;border-radius:14px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:12px;cursor:pointer;")}>คงเดิม · Keep</button>
+              </div>
+            </div>
+          )}
+          {s.ownerWaiting && (
+            <div style={sx("margin-top:12px;background:#FEF0DC;border-radius:14px;padding:11px 14px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;color:#C98A3C;text-align:center;")}>⏳ รอติวเตอร์ยืนยันคาบนี้ · Waiting for your tutor to confirm</div>
+          )}
+          {s.showReschedule && (
+            <button onClick={v.rescheduleSlot} style={sx(`margin-top:12px;width:100%;border:2px solid ${v.g.pcBorder};border-radius:16px;background:#fff;color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;`)}>🗓️ ย้ายวัน · Reschedule</button>
+          )}
           <div style={sx("margin-top:18px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;")}>รีแอคชัน · React</div>
           <div style={sx('display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;')}>
             {s.reactions.map((r, i) => <button key={'r' + i} onClick={r.onTap} style={sx(r.style)}><span style={sx('font-size:16px;')}>{r.emoji}</span> <span style={sx('font-weight:800;font-size:13px;')}>{r.count}</span></button>)}
@@ -241,9 +268,9 @@ export function BookedConfirm({ v }) {
   return (
     <div onClick={v.closeBooked} style={sx('position:absolute;inset:0;z-index:46;background:rgba(74,63,85,.42);animation:ts-scrim .2s ease;display:flex;align-items:center;justify-content:center;padding:0 34px;')}>
       <div onClick={v.stop} style={sx('width:100%;max-width:400px;background:#FFF8FB;border-radius:28px;padding:26px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-pop .38s cubic-bezier(.34,1.56,.64,1) both;text-align:center;')}>
-        <div style={sx('font-size:52px;animation:ts-bob 2.6s ease-in-out infinite;')}>🎉</div>
-        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;margin-top:8px;")}>จองคาบแล้ว!</div>
-        <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:2px;')}>Added to your calendar</div>
+        <div style={sx('font-size:52px;animation:ts-bob 2.6s ease-in-out infinite;')}>{b.pending ? '📩' : '🎉'}</div>
+        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;margin-top:8px;")}>{b.pending ? 'ส่งคำขอจองแล้ว!' : 'จองคาบแล้ว!'}</div>
+        <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:2px;')}>{b.pending ? 'รอติวเตอร์ยืนยัน · Sent to your tutor to confirm' : 'Added to your calendar'}</div>
         <div style={sx('margin-top:14px;')}><span style={sx(b.chipStyle)}>{b.short}</span></div>
         <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;color:#4A3F55;margin-top:8px;")}>{b.title}</div>
         <div style={sx('font-size:13px;font-weight:700;color:#8A7C93;margin-top:3px;')}>{b.sub}</div>
@@ -639,10 +666,10 @@ export function ReschedSheet({ v }) {
       <SheetShell v={v} z={45} maxH="none" extra="padding:14px 20px 24px;">
         <div style={sx(`width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;${v.desktop ? 'display:none;' : ''}`)} />
         <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
-          <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;")}>ย้ายไปวันไหน? 🗓️</div>
+          <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;")}>{v.reschedPropose ? 'เสนอเลื่อนไปวันไหน? 🗓️' : 'ย้ายไปวันไหน? 🗓️'}</div>
           {closeBtn(v.closeResched)}
         </div>
-        <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:4px;')}>เลือกวันใหม่ในเดือน{v.reschedMonth} · Pick a new day</div>
+        <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:4px;')}>{v.reschedPropose ? 'เลือกวันที่อยากเสนอ · Propose a new day' : 'เลือกวันใหม่ในเดือน' + v.reschedMonth + ' · Pick a new day'}</div>
         <div style={sx('display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;')}>
           {v.reschedDays.map((d) => <button key={d.num} onClick={d.onTap} style={sx(d.style)}>{d.num}</button>)}
         </div>

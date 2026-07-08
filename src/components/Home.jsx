@@ -86,7 +86,10 @@ export function HomeScreen({ v }) {
                       <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16.5px;color:#4A3F55;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;")}>{pl.name}</div>
                       <div style={sx('font-size:11.5px;font-weight:700;color:#B0A4BC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;')}>{pl.en}</div>
                     </div>
-                    <span style={sx(pl.typeBadge)}>{pl.typeLabel}</span>
+                    <div style={sx('display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none;')}>
+                      <span style={sx(pl.typeBadge)}>{pl.typeLabel}</span>
+                      {pl.shared && <span style={sx(pl.sharedStyle)}>🔗 แชร์</span>}
+                    </div>
                   </div>
                   <div style={sx('display:flex;align-items:baseline;justify-content:space-between;margin-top:14px;position:relative;')}>
                     <span style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;")}>{pl.big}</span>

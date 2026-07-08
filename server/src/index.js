@@ -39,13 +39,17 @@ function ensureUser(email, name = '') {
   return db.query('SELECT * FROM users WHERE email = ?').get(email)
 }
 
+function membersOf(planId) {
+  return db.query('SELECT email, role FROM plan_members WHERE plan_id = ? ORDER BY joined_at').all(planId)
+}
+
 function plansForUser(email) {
   const rows = db.query(`
     SELECT p.*, m.role AS my_role, m.joined_at AS joined_at FROM plans p
     JOIN plan_members m ON m.plan_id = p.id
     WHERE m.email = ? ORDER BY m.joined_at, p.updated_at
   `).all(email)
-  return rows.map((r) => ({ ...parsePlan(r), _role: r.my_role, _shared: r.owner !== email }))
+  return rows.map((r) => ({ ...parsePlan(r), _role: r.my_role, _shared: r.owner !== email, _members: membersOf(r.id) }))
 }
 
 function marketList() {
@@ -123,7 +127,7 @@ export const app = new Elysia()
       const stored = { ...doc, id }
       db.query('INSERT INTO plans (id, owner, doc, updated_at, rev) VALUES (?, ?, ?, ?, 1)').run(id, email, JSON.stringify(stored), now())
       db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)').run(id, email, 'owner', now())
-      return { plan: { ...stored, _role: 'owner', _shared: false, _rev: 1 } }
+      return { plan: { ...stored, _role: 'owner', _shared: false, _rev: 1, _members: membersOf(id) } }
     }, { body: t.Object({ plan: t.Any() }) })
 
     // save a plan doc (owner or member). last-write-wins; bumps rev.
@@ -163,7 +167,7 @@ export const app = new Elysia()
         db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)')
           .run(inv.plan_id, email, 'member', now())
       }
-      return { plan: { ...parsePlan(plan), _role: plan.owner === email ? 'owner' : 'member', _shared: plan.owner !== email } }
+      return { plan: { ...parsePlan(plan), _role: plan.owner === email ? 'owner' : 'member', _shared: plan.owner !== email, _members: membersOf(plan.id) } }
     })
 
     // ----- market -----
@@ -185,8 +189,34 @@ export const app = new Elysia()
       db.query('INSERT INTO plans (id, owner, doc, updated_at, rev) VALUES (?, ?, ?, ?, 1)').run(id, email, JSON.stringify(plan), now())
       db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)').run(id, email, 'owner', now())
       db.query('UPDATE market SET uses = uses + 1 WHERE id = ?').run(params.id)
-      return { plan: { ...plan, _role: 'owner', _shared: false, _rev: 1 } }
+      return { plan: { ...plan, _role: 'owner', _shared: false, _rev: 1, _members: membersOf(id) } }
     })
+
+    // notify the OTHER members of a plan about a confirmation-loop event.
+    // Messages are server-templated by event (not free text) for safety.
+    .post('/plans/:id/notify', async ({ email, params, body, set }) => {
+      const id = params.id
+      if (!isMember(id, email)) { set.status = 403; return { error: 'not_a_member' } }
+      const row = db.query('SELECT doc FROM plans WHERE id = ?').get(id)
+      if (!row) { set.status = 404; return { error: 'not_found' } }
+      let doc; try { doc = JSON.parse(row.doc) } catch { doc = {} }
+      const s = (doc.sessions || []).find((x) => String(x.id) === String(body.sessionId))
+      const cat = s && doc.categories ? doc.categories[s.subj] : null
+      const what = cat ? `${cat.th} · ${cat.en}` : (doc.name || 'คาบเรียน')
+      const when = s ? ` (วันที่ ${s.day} · ${s.time})` : ''
+      const T = {
+        booked:    { title: 'คำขอจองคาบใหม่ 📩', body: `${what}${when} — โปรดยืนยัน · New session request in ${doc.name}` },
+        confirmed: { title: 'ยืนยันคาบแล้ว ✅', body: `${what}${when} · A session was confirmed in ${doc.name}` },
+        declined:  { title: 'คาบถูกปฏิเสธ 🙏', body: `${what}${when} · A session was declined in ${doc.name}` },
+        proposed:  { title: 'เสนอเลื่อนวัน 🗓️', body: `${what} — ${doc.name} · A reschedule was proposed` },
+        accepted:  { title: 'ยอมรับการเลื่อนแล้ว 👍', body: `${what}${when} · Your proposal was accepted in ${doc.name}` },
+      }[body.event]
+      if (!T) { set.status = 400; return { error: 'bad_event' } }
+      const recipients = membersOf(id).map((m) => m.email).filter((e) => e !== email)
+      let sent = 0
+      for (const r of recipients) sent += await sendToUser(r, { ...T, tag: `notify-${id}-${body.event}`, url: '/' })
+      return { recipients: recipients.length, sent }
+    }, { body: t.Object({ event: t.String(), sessionId: t.Optional(t.Any()) }) })
 
     // ----- push reminders -----
     .get('/push/key', () => ({ key: vapidPublicKey }))

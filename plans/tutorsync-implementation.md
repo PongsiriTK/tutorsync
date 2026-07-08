@@ -124,9 +124,24 @@ shared collaboration was previously simulated).
 - [x] Deployed to jarvis (VAPID persisted) + Netlify; verified card/Enable live
       in cloud mode. 15 server tests + 20 guest e2e green.
 
-- [ ] Still outstanding (next): tutor-side confirmation loop, real email OTP
-      delivery (mailer), live sockets instead of 20s polling, stable public
-      hostname (named CF tunnel / Tailscale Funnel).
+### Phase 9 — Tutor-side confirmation loop (two-sided) (added 2026-07-08)
+- [x] Server: `/state` plans include `_members`; `POST /plans/:id/notify`
+      pushes server-templated event messages to other members. Tests.
+- [x] Client: session `status` (pending/confirmed/declined/reschedule +
+      proposedDay). Booking → pending only when a tutor (non-owner member)
+      exists, else auto-confirm. confirm/decline/propose/accept/keep actions
+      ride the shared-doc sync + `notifyPlan` push. Role-aware (amOwner).
+- [x] UI: status pills (day sheet + slot), slot action buttons per role/status,
+      reschedule picker reused in "propose" mode, Team-tab "awaiting your
+      confirmation" inbox for tutors, pending vs confirmed booking dialog,
+      🔗 shared-plan badge on plan cards.
+- [x] `e2e/cloud.spec.js`: two-account owner-books-pending → tutor-confirms →
+      owner-sees-confirmed. 3/3 cloud + 20/20 guest green. Deployed jarvis +
+      Netlify.
+
+- [ ] Still outstanding (next): real email OTP delivery (mailer), live sockets
+      instead of 20s polling, stable public hostname (named CF tunnel /
+      Tailscale Funnel).
 
 ## Validation
 

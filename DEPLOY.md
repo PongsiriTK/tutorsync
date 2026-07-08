@@ -76,11 +76,12 @@ push services (FCM/Apple/Mozilla) over HTTPS — no extra egress config needed.
 
 ## Not yet real (honest status)
 
-Cloud mode + reminders close most of the MVP gaps (accounts, cross-device
-persistence, genuinely shared invite-based plans, notifications even when
-closed). Still outstanding from the critique: a **tutor-side confirmation**
-loop, **real email OTP delivery** (`TS_HIDE_OTP=1` + a mailer — the OTP is
-currently returned in the response), and **live sockets** instead of 20s
-polling for collaboration. Reminder delivery to a live browser can't be
-verified in headless CI (headless denies the notification permission); the
-server delivery pipeline is tested against real FCM.
+Cloud mode + reminders + the tutor-side confirmation loop close most of the MVP
+gaps (accounts, cross-device persistence, genuinely shared invite-based plans,
+notifications even when closed, and a two-sided book→confirm flow). Still
+outstanding from the critique: **real email OTP delivery** (`TS_HIDE_OTP=1` + a
+mailer — the OTP is currently returned in the response), **live sockets**
+instead of 20s polling for collaboration, and a **stable public hostname**.
+Reminder delivery to a live browser can't be verified in headless CI (headless
+denies the notification permission); the server delivery pipeline is tested
+against real FCM.
