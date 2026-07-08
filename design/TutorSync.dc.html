@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Thai+2:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes ts-float { 0%,100%{ transform: translate(0,0) scale(1); } 50%{ transform: translate(14px,-18px) scale(1.06); } }
+  @keyframes ts-float2 { 0%,100%{ transform: translate(0,0) scale(1); } 50%{ transform: translate(-18px,14px) scale(1.08); } }
+  @keyframes ts-sheetUp { from{ transform: translateY(102%); } to{ transform: translateY(0); } }
+  @keyframes ts-scrim { from{ opacity: 0; } to{ opacity: 1; } }
+  @keyframes ts-dot { 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.5); opacity:.55; } }
+  @keyframes ts-bob { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-5px); } }
+  @keyframes ts-toast { 0%{ transform: translate(-50%,-14px) scale(.9); opacity:0; } 12%{ transform: translate(-50%,0) scale(1); opacity:1; } 85%{ transform: translate(-50%,0) scale(1); opacity:1; } 100%{ transform: translate(-50%,-10px) scale(.96); opacity:0; } }
+  @keyframes ts-thinking { 0%,80%,100%{ transform: scale(.5); opacity:.4; } 40%{ transform: scale(1); opacity:1; } }
+  @keyframes ts-fadeup { from{ transform: translateY(10px); opacity:0; } to{ transform: translateY(0); opacity:1; } }
+  @keyframes ts-cardin { from{ transform: translateY(16px) scale(.97); opacity:0; } to{ transform: translateY(0) scale(1); opacity:1; } }
+  @keyframes ts-shimmer { 0%{ background-position: -320px 0; } 100%{ background-position: 320px 0; } }
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;margin:0 auto;position:relative;overflow:hidden;border-radius:46px;background:linear-gradient(170deg,#FFF3EC 0%,#FDEFF6 52%,#EFF3FF 100%);box-shadow:0 30px 80px rgba(180,120,150,.30),0 4px 12px rgba(180,120,150,.14);font-family:'Nunito','Baloo Thai 2',sans-serif;color:#4A3F55;display:flex;flex-direction:column;user-select:none;">
+
+  <div style="position:absolute;top:-70px;right:-50px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#FFD7E4,#FFC4B0);filter:blur(6px);opacity:.5;animation:ts-float 11s ease-in-out infinite;pointer-events:none;"></div>
+  <div style="position:absolute;bottom:60px;left:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#D9E4FF,#E8DBFF);filter:blur(6px);opacity:.45;animation:ts-float2 13s ease-in-out infinite;pointer-events:none;"></div>
+
+  <!-- ===== AUTH (passwordless OTP) ===== -->
+  <sc-if value="{{ showAuth }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;z-index:70;background:linear-gradient(170deg,#FFF3EC,#FDEFF6 55%,#EFF3FF);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;">
+    <sc-if value="{{ authEmailStep }}" hint-placeholder-val="{{ true }}">
+    <div style="width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:72px;animation:ts-bob 3s ease-in-out infinite;">🗓️</div>
+      <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:27px;color:#4A3F55;margin-top:10px;">ยินดีต้อนรับ</div>
+      <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#B0A4BC;margin-top:2px;">Sign in to TutorSync</div>
+      <div style="font-size:13px;font-weight:700;color:#C0A8CC;margin-top:8px;line-height:1.5;">ไม่ต้องใช้รหัสผ่าน — เราจะส่งโค้ด 6 หลักไปที่อีเมลของคุณ 💌</div>
+      <div style="width:100%;margin-top:24px;display:flex;align-items:center;gap:10px;background:#fff;border-radius:18px;padding:4px 6px 4px 16px;box-shadow:0 10px 26px rgba(180,120,150,.14);border:2px solid {{ authEmailBorder }};">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B0A4BC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"></rect><path d="m3 7 9 6 9-6"></path></svg>
+        <input value="{{ authEmail }}" onInput="{{ setAuthEmail }}" onKeyDown="{{ emailKey }}" type="email" inputmode="email" placeholder="you@email.com" style="flex:1;border:none;outline:none;background:transparent;font-family:'Nunito',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;min-width:0;padding:11px 0;" />
+      </div>
+      <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:800;color:#E06B85;margin-top:8px;">{{ authError }}</div></sc-if>
+      <button onClick="{{ sendCode }}" style="margin-top:16px;width:100%;border:none;border-radius:18px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;padding:15px;cursor:pointer;box-shadow:0 12px 26px {{ g.pcShadow }};">ส่งโค้ด · Send code ✉️</button>
+      <div style="font-size:11px;font-weight:700;color:#C6B6D0;margin-top:14px;line-height:1.4;">เมื่อดำเนินการต่อ ถือว่ายอมรับข้อกำหนดการใช้งาน</div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ authOtpStep }}" hint-placeholder-val="{{ false }}">
+    <div style="width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:64px;animation:ts-bob 3s ease-in-out infinite;">💌</div>
+      <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:24px;color:#4A3F55;margin-top:10px;">ใส่โค้ดยืนยัน</div>
+      <div style="font-size:13px;font-weight:700;color:#B0A4BC;margin-top:4px;line-height:1.5;">ส่งโค้ด 6 หลักไปที่<br><span style="color:#4A3F55;font-weight:800;">{{ maskedEmail }}</span></div>
+
+      <div style="position:relative;width:100%;margin-top:22px;">
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <sc-for list="{{ otpCells }}" as="c" hint-placeholder-count="6"><div style="{{ c.style }}">{{ c.char }}</div></sc-for>
+        </div>
+        <input value="{{ authOtp }}" onInput="{{ setAuthOtp }}" onKeyDown="{{ otpKey }}" inputmode="numeric" maxlength="6" autofocus="autofocus" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font-size:16px;" />
+      </div>
+      <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:800;color:#E06B85;margin-top:12px;">{{ authError }}</div></sc-if>
+
+      <div style="margin-top:16px;background:{{ g.pcSoft }};border-radius:14px;padding:10px 14px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:{{ g.pc }};">🔑 โค้ดทดสอบ · demo code: <span style="font-weight:800;letter-spacing:1px;">{{ authCode }}</span></div>
+
+      <button onClick="{{ verifyOtp }}" style="margin-top:18px;width:100%;border:none;border-radius:18px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;padding:15px;cursor:pointer;box-shadow:0 12px 26px {{ g.pcShadow }};">ยืนยัน · Verify ✨</button>
+      <div style="display:flex;gap:14px;margin-top:14px;">
+        <button onClick="{{ changeEmail }}" style="border:none;background:none;color:#B0A4BC;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;cursor:pointer;">← เปลี่ยนอีเมล</button>
+        <button onClick="{{ resendCode }}" style="border:none;background:none;color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;cursor:pointer;">ส่งโค้ดอีกครั้ง</button>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ===== ONBOARDING ===== -->
+  <sc-if value="{{ onboarding }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:60;background:linear-gradient(170deg,#FFF3EC,#FDEFF6 55%,#EFF3FF);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 34px;text-align:center;">
+    <div style="font-size:82px;animation:ts-bob 3s ease-in-out infinite;">🗓️</div>
+    <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:30px;color:#4A3F55;margin-top:14px;line-height:1.1;">TutorSync</div>
+    <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:16px;color:#B0A4BC;margin-top:4px;">หลายเป้าหมาย หลายปฏิทิน ในที่เดียว</div>
+    <div style="font-size:13.5px;font-weight:700;color:#C0A8CC;margin-top:8px;line-height:1.5;max-width:290px;">Every goal gets its own calendar. Set a budget, hours, deadline, or session target — then invite people to plan it live with you.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:26px;width:100%;max-width:290px;">
+      <sc-for list="{{ onbFeatures }}" as="f" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.72);border-radius:18px;padding:12px 15px;box-shadow:0 6px 16px rgba(180,120,150,.1);text-align:left;">
+          <span style="font-size:24px;">{{ f.emoji }}</span>
+          <div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:14px;color:#4A3F55;">{{ f.title }}</div><div style="font-size:11.5px;font-weight:700;color:#B0A4BC;">{{ f.sub }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+    <button onClick="{{ finishOnboarding }}" style="margin-top:26px;width:100%;max-width:290px;border:none;border-radius:20px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px {{ g.pcShadow }};animation:ts-bob 3.4s ease-in-out infinite;">เริ่มเลย · Let's go! 🚀</button>
+  </div>
+  </sc-if>
+
+  <!-- ===== HEADER ===== -->
+  <div style="position:relative;z-index:5;padding:52px 20px 12px;flex:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+        <sc-if value="{{ inPlan }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ backHome }}" aria-label="Back to plans" style="width:34px;height:34px;border:none;border-radius:14px;background:{{ g.pcSoft }};color:{{ g.pc }};cursor:pointer;box-shadow:0 4px 10px rgba(180,120,150,.12);display:flex;align-items:center;justify-content:center;flex:none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{ g.pc }}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"></path><path d="M5 10.5V20h14v-9.5"></path></svg>
+          </button>
+        </sc-if>
+        <sc-if value="{{ isCal }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ prevMonth }}" aria-label="Previous month" style="width:30px;height:30px;border:none;border-radius:12px;background:rgba(255,255,255,.7);color:#A99BB5;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;">‹</button>
+        </sc-if>
+        <div style="min-width:0;">
+          <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:21px;line-height:1.05;color:#4A3F55;white-space:nowrap;">{{ headerTitle }}</div>
+          <div style="font-size:12px;font-weight:700;color:#B0A4BC;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px;">{{ headerSub }}</div>
+        </div>
+        <sc-if value="{{ isCal }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ nextMonth }}" aria-label="Next month" style="width:30px;height:30px;border:none;border-radius:12px;background:rgba(255,255,255,.7);color:#A99BB5;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;">›</button>
+        </sc-if>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex:none;">
+        <div style="display:flex;align-items:center;">
+          <sc-for list="{{ presenceAvatars }}" as="p" hint-placeholder-count="3">
+            <div style="{{ p.wrap }}" title="{{ p.name }}">
+              <div style="{{ p.style }}">{{ p.initials }}</div>
+              <sc-if value="{{ p.online }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#5FD3A8;border:2px solid #fff;"></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <button onClick="{{ openSettings }}" aria-label="Settings" style="width:36px;height:36px;border:none;border-radius:14px;background:rgba(255,255,255,.8);cursor:pointer;box-shadow:0 4px 10px rgba(180,120,150,.12);display:flex;align-items:center;justify-content:center;flex:none;">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A7C93" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div style="font-size:11.5px;font-weight:700;color:#C0A8CC;margin-top:6px;padding-left:2px;">{{ viewingText }}</div>
+  </div>
+
+  <!-- ===== MAIN SCROLL ===== -->
+  <div data-scroll-main="1" style="position:relative;z-index:4;flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px 112px;">
+
+    <!-- HOME · PLANS + MARKET -->
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:14px;padding-top:2px;">
+      <div style="display:flex;gap:6px;background:rgba(255,255,255,.6);border-radius:18px;padding:5px;box-shadow:0 6px 16px rgba(180,120,150,.08);">
+        <button onClick="{{ goMine }}" style="{{ segMine }}">🎯 ของฉัน · Mine</button>
+        <button onClick="{{ goMarket }}" style="{{ segMarket }}">🛍️ มาร์เก็ต · Explore</button>
+      </div>
+
+      <sc-if value="{{ homeMarket }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="font-size:12.5px;font-weight:700;color:#B0A4BC;padding:0 2px;">แพลนยอดนิยมจากคอมมูนิตี้ · Popular templates you can copy ✨</div>
+        <sc-for list="{{ marketCards }}" as="mk" hint-placeholder-count="4">
+          <button onClick="{{ mk.onTap }}" style="width:100%;text-align:left;border:none;background:#fff;border-radius:26px;padding:18px;box-shadow:0 12px 30px rgba(180,120,150,.14);cursor:pointer;animation:ts-cardin .45s ease both;position:relative;overflow:hidden;">
+            <div style="{{ mk.glow }}"></div>
+            <div style="display:flex;align-items:center;gap:13px;position:relative;">
+              <div style="{{ mk.iconStyle }}">{{ mk.emoji }}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16.5px;color:#4A3F55;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ mk.name }}</div>
+                <div style="font-size:11.5px;font-weight:700;color:#B0A4BC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ mk.en }}</div>
+              </div>
+              <span style="{{ mk.typeBadge }}">{{ mk.typeLabel }}</span>
+            </div>
+            <div style="font-size:12.5px;font-weight:700;color:#8A7C93;margin-top:12px;position:relative;line-height:1.4;">{{ mk.desc }}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;position:relative;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="{{ mk.authorAvatar }}">{{ mk.authorInitials }}</span>
+                <span style="font-size:11.5px;font-weight:700;color:#B0A4BC;">โดย {{ mk.author }}</span>
+              </div>
+              <div style="font-size:11.5px;font-weight:800;color:{{ mk.color }};">❤️ {{ mk.likes }} · ⬇ {{ mk.uses }}</div>
+            </div>
+          </button>
+        </sc-for>
+        <div style="text-align:center;font-size:11.5px;font-weight:700;color:#C6B6D0;padding:4px 0 2px;">เผยแพร่แพลนของคุณได้จากหน้าเป้าหมาย 📤</div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ homeMine }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+        <sc-for list="{{ loadingCards }}" as="sk" hint-placeholder-count="3">
+          <div style="background:#fff;border-radius:26px;padding:18px;box-shadow:0 12px 30px rgba(180,120,150,.1);">
+            <div style="display:flex;align-items:center;gap:13px;">
+              <div style="width:52px;height:52px;border-radius:18px;background:linear-gradient(90deg,#F1ECF5 25%,#F8F3FA 50%,#F1ECF5 75%);background-size:320px 100%;animation:ts-shimmer 1.3s infinite linear;flex:none;"></div>
+              <div style="flex:1;">
+                <div style="height:15px;width:60%;border-radius:7px;background:linear-gradient(90deg,#F1ECF5 25%,#F8F3FA 50%,#F1ECF5 75%);background-size:320px 100%;animation:ts-shimmer 1.3s infinite linear;"></div>
+                <div style="height:11px;width:40%;border-radius:6px;margin-top:7px;background:linear-gradient(90deg,#F1ECF5 25%,#F8F3FA 50%,#F1ECF5 75%);background-size:320px 100%;animation:ts-shimmer 1.3s infinite linear;"></div>
+              </div>
+            </div>
+            <div style="height:20px;width:45%;border-radius:8px;margin-top:16px;background:linear-gradient(90deg,#F1ECF5 25%,#F8F3FA 50%,#F1ECF5 75%);background-size:320px 100%;animation:ts-shimmer 1.3s infinite linear;"></div>
+            <div style="height:11px;width:100%;border-radius:8px;margin-top:10px;background:linear-gradient(90deg,#F1ECF5 25%,#F8F3FA 50%,#F1ECF5 75%);background-size:320px 100%;animation:ts-shimmer 1.3s infinite linear;"></div>
+          </div>
+        </sc-for>
+      </sc-if>
+      <sc-if value="{{ notLoading }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+      <sc-for list="{{ planCards }}" as="pl" hint-placeholder-count="3">
+        <button onClick="{{ pl.onTap }}" style="width:100%;text-align:left;border:none;background:#fff;border-radius:26px;padding:18px;box-shadow:0 12px 30px rgba(180,120,150,.14);cursor:pointer;animation:ts-cardin .45s ease both;position:relative;overflow:hidden;">
+          <div style="{{ pl.glow }}"></div>
+          <div style="display:flex;align-items:center;gap:13px;position:relative;">
+            <div style="{{ pl.iconStyle }}">{{ pl.emoji }}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16.5px;color:#4A3F55;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pl.name }}</div>
+              <div style="font-size:11.5px;font-weight:700;color:#B0A4BC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pl.en }}</div>
+            </div>
+            <span style="{{ pl.typeBadge }}">{{ pl.typeLabel }}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:14px;position:relative;">
+            <span style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">{{ pl.big }}</span>
+            <span style="font-size:11.5px;font-weight:800;color:{{ pl.color }};">{{ pl.pctText }}</span>
+          </div>
+          <div style="margin-top:8px;height:11px;border-radius:8px;background:#F2ECF6;overflow:hidden;position:relative;"><div style="{{ pl.barStyle }}"></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;position:relative;">
+            <div style="display:flex;align-items:center;">
+              <sc-for list="{{ pl.avatars }}" as="a" hint-placeholder-count="2"><div style="{{ a.style }}">{{ a.initials }}</div></sc-for>
+            </div>
+            <div style="font-size:11.5px;font-weight:700;color:#B0A4BC;">{{ pl.metaText }} ›</div>
+          </div>
+        </button>
+      </sc-for>
+
+      <button onClick="{{ openCreate }}" style="width:100%;border:2px dashed {{ g.pcBorder }};border-radius:24px;background:{{ g.pcSoft }};color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;padding:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;animation:ts-cardin .5s ease both;">
+        <span style="font-size:22px;">＋</span> สร้างเป้าหมายใหม่ · New goal
+      </button>
+      </div>
+      </sc-if>
+      </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
+    <!-- CALENDAR -->
+    <sc-if value="{{ isCal }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;">
+        <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7"><div style="{{ w.style }}">{{ w.label }}</div></sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;">
+        <sc-for list="{{ cells }}" as="cell" hint-placeholder-count="35">
+          <button onClick="{{ cell.onTap }}" data-day="{{ cell.dayNum }}" data-has="{{ cell.hasSess }}" style="{{ cell.style }}">
+            <span style="{{ cell.numStyle }}">{{ cell.dayNum }}</span>
+            <div style="display:flex;gap:3px;justify-content:center;margin-top:3px;height:6px;">
+              <sc-for list="{{ cell.dots }}" as="d" hint-placeholder-count="0"><i style="{{ d.style }}"></i></sc-for>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="margin-top:18px;background:rgba(255,255,255,.72);border-radius:22px;padding:14px 16px;box-shadow:0 8px 22px rgba(180,120,150,.12);">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;margin-bottom:10px;">{{ legendTitle }}</div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <sc-for list="{{ legend }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="{{ s.dotStyle }}"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:13.5px;color:#4A3F55;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.th }}</div>
+                <div style="font-size:11px;font-weight:700;color:#B0A4BC;">{{ s.en }} · {{ s.insEn }} · {{ s.rateLabel }}</div>
+              </div>
+              <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;color:{{ s.color }};">{{ s.count }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:16px;font-size:12px;font-weight:700;color:#C6B6D0;">แตะเพื่อดู · ลากวันเพื่อย้ายคาบ · Tap or drag a day ✨</div>
+    </div>
+    </sc-if>
+
+    <!-- GOALS (type-adaptive) -->
+    <sc-if value="{{ isGoals }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:14px;padding-top:4px;">
+      <div style="background:linear-gradient(135deg,{{ g.pc }},{{ g.pc2 }});border-radius:26px;padding:20px;box-shadow:0 14px 30px {{ g.pcShadow }};color:#fff;animation:ts-fadeup .4s ease both;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:12px;font-weight:800;opacity:.9;letter-spacing:.4px;">{{ goalPrimary.kicker }}</div>
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:30px;line-height:1.1;margin-top:2px;">{{ goalPrimary.big }}</div>
+            <div style="font-size:12.5px;font-weight:700;opacity:.92;">{{ goalPrimary.sub }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onClick="{{ openEditTarget }}" aria-label="Edit target" style="width:34px;height:34px;border:none;border-radius:13px;background:rgba(255,255,255,.28);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            </button>
+            <div style="width:58px;height:58px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:26px;">{{ goalPrimary.emoji }}</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;height:14px;border-radius:10px;background:rgba(255,255,255,.28);overflow:hidden;"><div style="{{ goalPrimary.barStyle }}"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:800;font-size:12.5px;">
+          <span>{{ goalPrimary.pctText }}</span><span>{{ goalPrimary.remainText }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;">
+        <sc-for list="{{ goalSecondary }}" as="sec" hint-placeholder-count="2">
+          <div style="flex:1;background:#fff;border-radius:24px;padding:16px;box-shadow:0 10px 26px rgba(180,120,150,.12);animation:ts-fadeup .5s ease both;">
+            <div style="font-size:11px;font-weight:800;color:#B0A4BC;">{{ sec.label }}</div>
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:{{ sec.size }};color:#4A3F55;margin-top:4px;line-height:1.15;">{{ sec.value }}</div>
+            <div style="margin-top:10px;height:9px;border-radius:8px;background:#F1ECF5;overflow:hidden;"><div style="{{ sec.barStyle }}"></div></div>
+            <div style="font-size:11px;font-weight:800;color:{{ g.pc }};margin-top:6px;">{{ sec.foot }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fff;border-radius:26px;padding:18px 20px;box-shadow:0 12px 30px rgba(180,120,150,.14);animation:ts-fadeup .7s ease both;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;margin-bottom:14px;">{{ perCatTitle }}</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ subjectGoals }}" as="sg" hint-placeholder-count="3">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+                <span style="font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:13.5px;color:#4A3F55;">{{ sg.en }}</span>
+                <span style="font-weight:800;font-size:12.5px;color:{{ sg.color }};">{{ sg.count }}/{{ sg.target }}</span>
+              </div>
+              <div style="height:10px;border-radius:8px;background:#F4EFF7;overflow:hidden;"><div style="{{ sg.barStyle }}"></div></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:15px 17px;box-shadow:0 10px 26px rgba(180,120,150,.12);display:flex;align-items:center;gap:12px;animation:ts-fadeup .75s ease both;">
+        <div style="width:40px;height:40px;border-radius:14px;background:{{ g.pcSoft }};display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;">⚙️</div>
+        <div style="flex:1;min-width:0;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14.5px;color:#4A3F55;">ตั้งค่าแพลน · Plan settings</div><div style="font-size:11.5px;font-weight:700;color:#B0A4BC;">คุณเป็นเจ้าของ · Host — edit anytime</div></div>
+        <button onClick="{{ openPlanEdit }}" style="border:none;border-radius:14px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:10px 15px;cursor:pointer;flex:none;box-shadow:0 6px 14px {{ g.pcShadow }};">แก้ไข</button>
+      </div>
+
+      <button onClick="{{ openPublish }}" style="width:100%;border:2px dashed {{ g.pcBorder }};border-radius:22px;background:{{ g.pcSoft }};color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;animation:ts-fadeup .8s ease both;">📤 เผยแพร่สู่มาร์เก็ต · Publish to Explore</button>
+    </div>
+    </sc-if>
+    <sc-if value="{{ isTeam }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px;">
+      <div style="background:linear-gradient(135deg,{{ g.pc }},{{ g.pc2 }});border-radius:26px;padding:20px;box-shadow:0 14px 30px {{ g.pcShadow }};color:#fff;animation:ts-fadeup .4s ease both;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;">แชร์แพลนนี้ 🤝</div>
+        <div style="font-size:13px;font-weight:700;opacity:.92;margin-top:2px;">Invite people to view &amp; react in real time</div>
+        <button onClick="{{ invite }}" style="margin-top:14px;width:100%;border:none;border-radius:16px;background:rgba(255,255,255,.95);color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:13px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.1);">🔗 คัดลอกลิงก์เชิญ · Copy invite link</button>
+      </div>
+      <sc-for list="{{ members }}" as="m" hint-placeholder-count="4">
+        <div style="background:#fff;border-radius:22px;padding:14px 16px;box-shadow:0 8px 22px rgba(180,120,150,.12);display:flex;align-items:center;gap:13px;animation:ts-fadeup .5s ease both;">
+          <div style="position:relative;flex:none;">
+            <div style="{{ m.avatarStyle }}">{{ m.initials }}</div>
+            <sc-if value="{{ m.online }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;bottom:0;right:0;width:12px;height:12px;border-radius:50%;background:#5FD3A8;border:2.5px solid #fff;"></span></sc-if>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;">{{ m.name }} <span style="font-size:12px;color:#B0A4BC;font-weight:700;">{{ m.en }}</span></div>
+            <div style="font-size:12px;font-weight:700;color:#B0A4BC;">{{ m.role }}</div>
+          </div>
+          <div style="text-align:right;flex:none;">
+            <div style="{{ m.badgeStyle }}">{{ m.badge }}</div>
+            <sc-if value="{{ m.hasRate }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;font-weight:800;color:#4A3F55;margin-top:4px;">{{ m.rateText }}</div></sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <!-- AI -->
+    <sc-if value="{{ isAI }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:11px;padding-top:2px;">
+      <sc-for list="{{ messages }}" as="msg" hint-placeholder-count="2">
+        <div style="{{ msg.rowStyle }}">
+          <sc-if value="{{ msg.isAi }}" hint-placeholder-val="{{ true }}"><div style="width:32px;height:32px;border-radius:12px;background:linear-gradient(135deg,#C9B6F7,#8FD0FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;">✨</div></sc-if>
+          <div style="{{ msg.bubbleStyle }}">{{ msg.text }}</div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ aiThinking }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="width:32px;height:32px;border-radius:12px;background:linear-gradient(135deg,#C9B6F7,#8FD0FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;">✨</div>
+          <div style="background:#fff;border-radius:18px 18px 18px 6px;padding:14px 16px;box-shadow:0 6px 16px rgba(180,120,150,.12);display:flex;gap:5px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#C9B6F7;animation:ts-thinking 1.2s infinite;"></span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#C9B6F7;animation:ts-thinking 1.2s infinite .2s;"></span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#C9B6F7;animation:ts-thinking 1.2s infinite .4s;"></span>
+          </div>
+        </div>
+      </sc-if>
+      <div style="height:158px;flex:none;"></div>
+    </div>
+    </sc-if>
+  </div>
+
+  <!-- AI dock -->
+  <sc-if value="{{ isAI }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:0;right:0;bottom:82px;z-index:6;padding:0 14px;">
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:9px;">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+        <button onClick="{{ c.onTap }}" style="flex:none;border:none;border-radius:14px;background:rgba(255,255,255,.92);color:#7A6C86;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;padding:8px 13px;cursor:pointer;box-shadow:0 4px 12px rgba(180,120,150,.12);white-space:nowrap;">{{ c.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:9px;align-items:center;background:#fff;border-radius:20px;padding:6px 6px 6px 16px;box-shadow:0 10px 26px rgba(180,120,150,.18);">
+      <input value="{{ chatInput }}" onInput="{{ setChatInput }}" onKeyDown="{{ chatKey }}" placeholder="ถามผู้ช่วย AI…  ask me anything" style="flex:1;border:none;outline:none;background:transparent;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;color:#4A3F55;min-width:0;" />
+      <button onClick="{{ sendChat }}" aria-label="Send" style="width:40px;height:40px;flex:none;border:none;border-radius:15px;background:{{ g.pc }};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px {{ g.pcShadow }};">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== HOME FAB ===== -->
+  <sc-if value="{{ homeMine }}" hint-placeholder-val="{{ true }}">
+  <button onClick="{{ openCreate }}" aria-label="New goal" style="position:absolute;right:22px;bottom:26px;z-index:9;width:62px;height:62px;border:none;border-radius:22px;background:{{ g.pc }};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 26px {{ g.pcShadow }};animation:ts-bob 3.2s ease-in-out infinite;">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  </button>
+  </sc-if>
+
+  <!-- ===== BOTTOM NAV (in plan) ===== -->
+  <sc-if value="{{ inPlan }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:8;height:78px;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-top:1px solid rgba(180,120,150,.1);border-radius:30px 30px 0 0;display:flex;align-items:center;justify-content:space-around;padding:0 8px 14px;box-shadow:0 -8px 24px rgba(180,120,150,.08);">
+    <button onClick="{{ goCal }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding-top:10px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ navCal }}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="2" x2="8" y2="5"></line><line x1="16" y1="2" x2="16" y2="5"></line></svg>
+      <span style="font-family:'Baloo Thai 2',sans-serif;font-size:10.5px;font-weight:700;color:{{ navCal }};">ปฏิทิน</span>
+    </button>
+    <button onClick="{{ goGoals }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding-top:10px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ navGoals }}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.4" fill="{{ navGoals }}"></circle></svg>
+      <span style="font-family:'Baloo Thai 2',sans-serif;font-size:10.5px;font-weight:700;color:{{ navGoals }};">เป้าหมาย</span>
+    </button>
+    <div style="flex:1;display:flex;justify-content:center;">
+      <button onClick="{{ openAdd }}" aria-label="Add session" style="width:60px;height:60px;margin-top:-26px;border:none;border-radius:22px;background:{{ g.pc }};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px {{ g.pcShadow }};animation:ts-bob 3.2s ease-in-out infinite;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </button>
+    </div>
+    <button onClick="{{ goTeam }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding-top:10px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ navTeam }}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      <span style="font-family:'Baloo Thai 2',sans-serif;font-size:10.5px;font-weight:700;color:{{ navTeam }};">ทีม</span>
+    </button>
+    <button onClick="{{ goAI }}" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;padding-top:10px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ navAI }}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5 10.1 7.6 12 3z"></path><path d="M19 15l.7 1.8L21.5 17.5 19.7 18.2 19 20l-.7-1.8L16.5 17.5 18.3 16.8 19 15z"></path></svg>
+      <span style="font-family:'Baloo Thai 2',sans-serif;font-size:10.5px;font-weight:700;color:{{ navAI }};">ผู้ช่วย</span>
+    </button>
+  </div>
+  </sc-if>
+
+  <!-- ===== MOVE CONFIRM ===== -->
+  <sc-if value="{{ pendingMove }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ cancelMove }}" style="position:absolute;inset:0;z-index:46;background:rgba(74,63,85,.42);animation:ts-scrim .2s ease;display:flex;align-items:center;justify-content:center;padding:0 34px;">
+      <div onClick="{{ stop }}" style="width:100%;background:#FFF8FB;border-radius:28px;padding:24px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-cardin .32s cubic-bezier(.34,1.56,.64,1) both;text-align:center;">
+        <div style="font-size:46px;animation:ts-bob 2.6s ease-in-out infinite;">🗓️</div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;margin-top:8px;">ย้ายคาบเรียน?</div>
+        <div style="font-size:13px;font-weight:700;color:#8A7C93;margin-top:6px;line-height:1.45;">{{ pendingMove.msg }}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;">
+          <div style="{{ pendingMove.fromChip }}">{{ pendingMove.from }}</div>
+          <span style="color:{{ g.pc }};font-size:22px;font-weight:800;">→</span>
+          <div style="{{ pendingMove.toChip }}">{{ pendingMove.to }}</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:22px;">
+          <button onClick="{{ cancelMove }}" style="flex:1;border:none;border-radius:16px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;">ยกเลิก</button>
+          <button onClick="{{ confirmMove }}" style="flex:1.5;border:none;border-radius:16px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;box-shadow:0 10px 22px {{ g.pcShadow }};">ย้ายเลย ✨</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== RESCHEDULE (single session) ===== -->
+  <sc-if value="{{ reschedOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeResched }}" style="position:absolute;inset:0;z-index:44;background:rgba(74,63,85,.42);animation:ts-scrim .2s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:45;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);padding:14px 20px 24px;">
+      <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;">ย้ายไปวันไหน? 🗓️</div>
+        <button onClick="{{ closeResched }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:4px;">เลือกวันใหม่ในเดือน{{ reschedMonth }} · Pick a new day</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;">
+        <sc-for list="{{ reschedDays }}" as="d" hint-placeholder-count="31"><button onClick="{{ d.onTap }}" style="{{ d.style }}">{{ d.num }}</button></sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== TOAST ===== -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:96px;left:50%;z-index:40;background:#4A3F55;color:#fff;border-radius:18px;padding:11px 18px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13.5px;box-shadow:0 12px 30px rgba(74,63,85,.4);display:flex;align-items:center;gap:8px;white-space:nowrap;animation:ts-toast 2.8s ease forwards;">
+      <span style="font-size:18px;">{{ toast.emoji }}</span>{{ toast.text }}
+    </div>
+  </sc-if>
+
+  <!-- ===== DAY SHEET ===== -->
+  <sc-if value="{{ dayOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDay }}" style="position:absolute;inset:0;z-index:20;background:rgba(74,63,85,.32);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:80%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.28);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="padding:14px 22px 6px;flex:none;">
+        <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 14px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:21px;color:#4A3F55;">{{ dayLabelTH }}</div><div style="font-size:12.5px;font-weight:700;color:#B0A4BC;">{{ dayLabelEN }}</div></div>
+          <button onClick="{{ closeDay }}" aria-label="Close" style="width:36px;height:36px;border:none;border-radius:14px;background:#F1E8F5;color:#8A7C93;font-size:19px;font-weight:800;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:8px 18px 20px;">
+        <sc-if value="{{ dayEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:36px 20px;">
+            <div style="font-size:52px;animation:ts-bob 3s ease-in-out infinite;">🗓️</div>
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#8A7C93;margin-top:8px;">ยังไม่มีคาบวันนี้</div>
+            <div style="font-size:12.5px;font-weight:700;color:#B8AAC4;">No sessions yet — add one below!</div>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <sc-for list="{{ daySessions }}" as="ds" hint-placeholder-count="2">
+            <button onClick="{{ ds.onTap }}" style="{{ ds.cardStyle }}">
+              <div style="{{ ds.stripeStyle }}"></div>
+              <div style="flex:1;min-width:0;text-align:left;">
+                <div style="display:flex;align-items:center;gap:7px;"><span style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;">{{ ds.time }}</span><span style="{{ ds.pillStyle }}">{{ ds.short }}</span></div>
+                <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:14.5px;color:#4A3F55;margin-top:3px;line-height:1.1;">{{ ds.subjTh }}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:6px;"><span style="{{ ds.insAvatar }}">{{ ds.insInitials }}</span><span style="font-size:11.5px;font-weight:700;color:#B0A4BC;">{{ ds.insEn }} · ฿{{ ds.cost }}</span></div>
+              </div>
+              <div style="text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                <sc-if value="{{ ds.hasReactions }}" hint-placeholder-val="{{ false }}"><div style="background:#F6EEFA;border-radius:12px;padding:4px 8px;font-size:12px;font-weight:800;color:#8A7C93;">{{ ds.reactSummary }}</div></sc-if>
+                <span style="color:#D7C8E0;font-size:18px;">›</span>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+        <button onClick="{{ openAddForDay }}" style="margin-top:14px;width:100%;border:2px dashed {{ g.pcBorder }};border-radius:20px;background:{{ g.pcSoft }};color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;">＋ เพิ่มคาบ · Add session</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== SLOT DETAIL ===== -->
+  <sc-if value="{{ slotOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSlot }}" style="position:absolute;inset:0;z-index:24;background:rgba(74,63,85,.36);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:25;max-height:90%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="{{ slot.headStyle }}">
+        <div style="width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);margin:0 auto 12px;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <span style="display:inline-block;background:rgba(255,255,255,.28);color:#fff;border-radius:10px;padding:3px 10px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;">{{ slot.short }}</span>
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#fff;margin-top:8px;line-height:1.1;">{{ slot.subjTh }}</div>
+            <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9);">{{ slot.subjEn }}</div>
+          </div>
+          <button onClick="{{ closeSlot }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:rgba(255,255,255,.25);color:#fff;font-size:18px;font-weight:800;cursor:pointer;flex:none;">✕</button>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:14px;color:#fff;">
+          <div><div style="font-size:10.5px;font-weight:800;opacity:.85;">⏰ เวลา</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;">{{ slot.time }}</div></div>
+          <div><div style="font-size:10.5px;font-weight:800;opacity:.85;">📅 วันที่</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;">{{ slot.dateShort }}</div></div>
+          <div><div style="font-size:10.5px;font-weight:800;opacity:.85;">💸 ค่าใช้จ่าย</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;">฿{{ slot.cost }}</div></div>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px 20px 22px;">
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:0 6px 16px rgba(180,120,150,.1);">
+          <span style="{{ slot.insAvatar }}">{{ slot.insInitials }}</span>
+          <div style="flex:1;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:14.5px;color:#4A3F55;">{{ slot.insTh }} <span style="font-size:11.5px;color:#B0A4BC;">{{ slot.insEn }}</span></div><div style="font-size:11.5px;font-weight:700;color:#B0A4BC;">{{ slot.rateLabel }} · {{ slot.hoursText }}</div></div>
+        </div>
+        <sc-if value="{{ slot.isFitness }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <div style="flex:1;background:#fff;border-radius:14px;padding:11px;text-align:center;box-shadow:0 4px 12px rgba(180,120,150,.09);"><div style="font-size:10.5px;font-weight:800;color:#B0A4BC;">เซ็ต · SETS</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:18px;color:#4A3F55;">{{ slot.sets }}</div></div>
+          <div style="flex:1;background:#fff;border-radius:14px;padding:11px;text-align:center;box-shadow:0 4px 12px rgba(180,120,150,.09);"><div style="font-size:10.5px;font-weight:800;color:#B0A4BC;">ครั้ง · REPS</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:18px;color:#4A3F55;">{{ slot.reps }}</div></div>
+          <div style="flex:1;background:#fff;border-radius:14px;padding:11px;text-align:center;box-shadow:0 4px 12px rgba(180,120,150,.09);"><div style="font-size:10.5px;font-weight:800;color:#B0A4BC;">เข้มข้น · INT</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;color:#4A3F55;margin-top:2px;">{{ slot.intensity }}</div></div>
+        </div>
+        </sc-if>
+        <button onClick="{{ rescheduleSlot }}" style="margin-top:12px;width:100%;border:2px solid {{ g.pcBorder }};border-radius:16px;background:#fff;color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">🗓️ ย้ายวัน · Reschedule</button>
+        <div style="margin-top:18px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;">รีแอคชัน · React</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;">
+          <sc-for list="{{ slot.reactions }}" as="r" hint-placeholder-count="0"><button onClick="{{ r.onTap }}" style="{{ r.style }}"><span style="font-size:16px;">{{ r.emoji }}</span> <span style="font-weight:800;font-size:13px;">{{ r.count }}</span></button></sc-for>
+          <sc-for list="{{ slot.palette }}" as="p" hint-placeholder-count="6"><button onClick="{{ p.onTap }}" style="width:38px;height:34px;border:1.5px dashed #E3D6EC;border-radius:13px;background:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">{{ p.emoji }}</button></sc-for>
+        </div>
+        <div style="margin-top:20px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;">คอมเมนต์ · Comments</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+          <sc-for list="{{ slot.comments }}" as="c" hint-placeholder-count="0">
+            <div style="display:flex;gap:9px;animation:ts-fadeup .3s ease both;">
+              <span style="{{ c.avatarStyle }}">{{ c.initials }}</span>
+              <div style="flex:1;background:#fff;border-radius:14px 14px 14px 4px;padding:9px 13px;box-shadow:0 4px 12px rgba(180,120,150,.09);">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#4A3F55;">{{ c.author }}</span><span style="font-size:10.5px;font-weight:700;color:#C6B6D0;">{{ c.time }}</span></div>
+                <div style="font-size:13px;font-weight:600;color:#5C5165;margin-top:2px;line-height:1.3;">{{ c.text }}</div>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ slot.noComments }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;font-size:12.5px;font-weight:700;color:#C6B6D0;padding:6px;">ยังไม่มีคอมเมนต์ · Be the first 💬</div></sc-if>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:12px;background:#fff;border-radius:16px;padding:5px 5px 5px 14px;box-shadow:0 6px 16px rgba(180,120,150,.1);">
+          <input value="{{ commentDraft }}" onInput="{{ setCommentDraft }}" onKeyDown="{{ commentKey }}" placeholder="เขียนคอมเมนต์…" style="flex:1;border:none;outline:none;background:transparent;font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;min-width:0;" />
+          <button onClick="{{ addComment }}" style="border:none;border-radius:12px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:9px 15px;cursor:pointer;flex:none;">ส่ง</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== ADD SHEET ===== -->
+  <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeAdd }}" style="position:absolute;inset:0;z-index:28;background:rgba(74,63,85,.36);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:29;max-height:92%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="padding:14px 22px 4px;flex:none;">
+        <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">เพิ่มคาบ ✏️</div>
+          <button onClick="{{ closeAdd }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:10px 20px 16px;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:8px;">ประเภท · Category</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+          <sc-for list="{{ addSubjects }}" as="a" hint-placeholder-count="4">
+            <button onClick="{{ a.onTap }}" style="{{ a.style }}"><span style="{{ a.dotStyle }}"></span><div style="text-align:left;min-width:0;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#4A3F55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.en }}</div><div style="font-size:10.5px;font-weight:700;color:#B0A4BC;">{{ a.rateLabel }}</div></div></button>
+          </sc-for>
+        </div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">วันที่ · Date</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+          <sc-for list="{{ addDays }}" as="d" hint-placeholder-count="7"><button onClick="{{ d.onTap }}" style="{{ d.style }}"><div style="font-size:10px;font-weight:800;opacity:.7;">{{ d.dow }}</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:18px;">{{ d.num }}</div></button></sc-for>
+        </div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">เวลา · Time</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ addTimes }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.onTap }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+        </div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">{{ addHoursLabel }}</div>
+        <div style="display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:10px 16px;box-shadow:0 6px 16px rgba(180,120,150,.1);">
+          <button onClick="{{ decHours }}" style="width:38px;height:38px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:22px;font-weight:800;cursor:pointer;">−</button>
+          <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:22px;color:#4A3F55;">{{ addHoursText }}</div>
+          <button onClick="{{ incHours }}" style="width:38px;height:38px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:22px;font-weight:800;cursor:pointer;">＋</button>
+        </div>
+
+        <sc-if value="{{ isFitnessAdd }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">ความเข้มข้น · Intensity 🔥</div>
+        <div style="display:flex;gap:8px;">
+          <sc-for list="{{ intensityOpts }}" as="io" hint-placeholder-count="3"><button onClick="{{ io.onTap }}" style="{{ io.style }}">{{ io.label }}</button></sc-for>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:14px;">
+          <div style="flex:1;">
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:8px;">เซ็ต · Sets</div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 6px 16px rgba(180,120,150,.1);">
+              <button onClick="{{ decSets }}" style="width:32px;height:32px;border:none;border-radius:11px;background:#F1E8F5;color:#8A7C93;font-size:19px;font-weight:800;cursor:pointer;">−</button>
+              <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;">{{ addSets }}</div>
+              <button onClick="{{ incSets }}" style="width:32px;height:32px;border:none;border-radius:11px;background:#F1E8F5;color:#8A7C93;font-size:19px;font-weight:800;cursor:pointer;">＋</button>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:8px;">ครั้ง/เซ็ต · Reps</div>
+            <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 6px 16px rgba(180,120,150,.1);">
+              <button onClick="{{ decReps }}" style="width:32px;height:32px;border:none;border-radius:11px;background:#F1E8F5;color:#8A7C93;font-size:19px;font-weight:800;cursor:pointer;">−</button>
+              <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;">{{ addReps }}</div>
+              <button onClick="{{ incReps }}" style="width:32px;height:32px;border:none;border-radius:11px;background:#F1E8F5;color:#8A7C93;font-size:19px;font-weight:800;cursor:pointer;">＋</button>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+        <div style="margin-top:16px;background:{{ g.pcSoft }};border-radius:20px;padding:16px 18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;">{{ addMetricLabel }}</div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:{{ g.pc }};">{{ addMetricValue }}</div></div>
+          <div style="margin-top:10px;height:8px;border-radius:6px;background:rgba(255,255,255,.7);overflow:hidden;"><div style="{{ addBudgetBarStyle }}"></div></div>
+          <div style="font-size:11.5px;font-weight:800;color:#8A7C93;margin-top:7px;">{{ addBudgetText }}</div>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 20px 22px;background:#FFF8FB;">
+        <button onClick="{{ saveSession }}" style="width:100%;border:none;border-radius:20px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px {{ g.pcShadow }};">บันทึกคาบ · Book session 🎉</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== CREATE GOAL SHEET ===== -->
+  <sc-if value="{{ createOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeCreate }}" style="position:absolute;inset:0;z-index:34;background:rgba(74,63,85,.4);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:35;max-height:94%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="padding:14px 22px 4px;flex:none;">
+        <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">เป้าหมายใหม่ 🎯</div>
+          <button onClick="{{ closeCreate }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:8px 20px 16px;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:8px;">แม่แบบ · Start from ✨</div>
+        <div style="display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;">
+          <sc-for list="{{ templates }}" as="tp" hint-placeholder-count="5"><button onClick="{{ tp.onTap }}" style="{{ tp.style }}">
+            <div style="{{ tp.iconStyle }}">{{ tp.emoji }}</div>
+            <div style="{{ tp.labelStyle }}">{{ tp.label }}</div>
+            <div style="{{ tp.vibeStyle }}">{{ tp.vibe }}</div>
+          </button></sc-for>
+        </div>
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">ชื่อเป้าหมาย · Goal name</div>
+        <input value="{{ ngName }}" onInput="{{ setNgName }}" placeholder="เช่น ติวสอบเข้ามหาลัย" style="width:100%;border:2px solid #EEE6F3;border-radius:16px;background:#fff;padding:13px 15px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;outline:none;" />
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">ชนิดของเป้าหมาย · Goal type</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+          <sc-for list="{{ goalTypeCards }}" as="gt" hint-placeholder-count="4">
+            <button onClick="{{ gt.onTap }}" style="{{ gt.style }}">
+              <span style="font-size:22px;">{{ gt.emoji }}</span>
+              <div style="text-align:left;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;color:#4A3F55;">{{ gt.title }}</div><div style="font-size:10.5px;font-weight:700;color:#B0A4BC;line-height:1.15;">{{ gt.sub }}</div></div>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">{{ targetLabel }}</div>
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 6px 16px rgba(180,120,150,.1);margin-bottom:9px;">
+          <button onClick="{{ decNgTarget }}" style="width:36px;height:36px;border:none;border-radius:12px;background:#F1E8F5;color:#8A7C93;font-size:20px;font-weight:800;cursor:pointer;flex:none;">−</button>
+          <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">{{ ngTargetText }}</div>
+          <button onClick="{{ incNgTarget }}" style="width:36px;height:36px;border:none;border-radius:12px;background:{{ g.pcSoft }};color:{{ g.pc }};font-size:20px;font-weight:800;cursor:pointer;flex:none;">＋</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ targetOptions }}" as="to" hint-placeholder-count="4"><button onClick="{{ to.onTap }}" style="{{ to.style }}">{{ to.label }}</button></sc-for>
+        </div>
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">สี &amp; ไอคอน · Look</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;gap:9px;">
+            <sc-for list="{{ createThemes }}" as="ct" hint-placeholder-count="4"><button onClick="{{ ct.onTap }}" style="{{ ct.style }}"><sc-if value="{{ ct.active }}" hint-placeholder-val="{{ false }}"><span style="color:#fff;font-size:15px;font-weight:800;">✓</span></sc-if></button></sc-for>
+          </div>
+          <div style="width:1px;height:30px;background:#EEE6F3;"></div>
+          <div style="display:flex;gap:7px;">
+            <sc-for list="{{ createEmojis }}" as="ce" hint-placeholder-count="5"><button onClick="{{ ce.onTap }}" style="{{ ce.style }}">{{ ce.emoji }}</button></sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 20px 22px;background:#FFF8FB;">
+        <button onClick="{{ createPlan }}" style="width:100%;border:none;border-radius:20px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px {{ g.pcShadow }};">สร้างเป้าหมาย · Create goal ✨</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== MARKET DETAIL ===== -->
+  <sc-if value="{{ marketOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMarket }}" style="position:absolute;inset:0;z-index:36;background:rgba(74,63,85,.4);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:37;max-height:90%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="{{ mkd.headStyle }}">
+        <div style="width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);margin:0 auto 12px;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="display:flex;align-items:center;gap:13px;">
+            <div style="width:56px;height:56px;border-radius:20px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:30px;">{{ mkd.emoji }}</div>
+            <div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#fff;line-height:1.1;">{{ mkd.name }}</div><div style="font-size:12.5px;font-weight:700;color:rgba(255,255,255,.9);">{{ mkd.en }}</div></div>
+          </div>
+          <button onClick="{{ closeMarket }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:rgba(255,255,255,.25);color:#fff;font-size:18px;font-weight:800;cursor:pointer;flex:none;">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <span style="background:rgba(255,255,255,.25);color:#fff;border-radius:11px;padding:5px 11px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;">{{ mkd.typeLabel }}</span>
+          <span style="background:rgba(255,255,255,.25);color:#fff;border-radius:11px;padding:5px 11px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;">❤️ {{ mkd.likes }}</span>
+          <span style="background:rgba(255,255,255,.25);color:#fff;border-radius:11px;padding:5px 11px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;">⬇ {{ mkd.uses }}</span>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px 20px 18px;">
+        <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:11px 14px;box-shadow:0 6px 16px rgba(180,120,150,.1);">
+          <span style="{{ mkd.authorAvatar }}">{{ mkd.authorInitials }}</span>
+          <div style="flex:1;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:14px;color:#4A3F55;">{{ mkd.author }}</div><div style="font-size:11px;font-weight:700;color:#B0A4BC;">ผู้สร้างแพลน · Creator</div></div>
+          <button onClick="{{ likeMarket }}" style="border:none;border-radius:13px;background:{{ mkd.soft }};color:{{ mkd.color }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:9px 14px;cursor:pointer;">❤️ ถูกใจ</button>
+        </div>
+        <div style="font-size:13.5px;font-weight:700;color:#5C5165;margin-top:14px;line-height:1.45;">{{ mkd.desc }}</div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;margin:18px 0 10px;">รวม {{ mkd.catCount }} หมวด · Includes</div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <sc-for list="{{ mkd.cats }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 6px 16px rgba(180,120,150,.09);">
+              <span style="width:13px;height:13px;border-radius:5px;background:{{ c.color }};flex:none;"></span>
+              <div style="flex:1;"><span style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;">{{ c.en }}</span></div>
+              <span style="font-size:12px;font-weight:800;color:{{ c.color }};">เป้า {{ c.target }} คาบ</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 20px 22px;background:#FFF8FB;">
+        <button onClick="{{ copyMarket }}" style="width:100%;border:none;border-radius:20px;background:{{ mkd.color }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px {{ mkd.shadow }};">⬇ คัดลอกไปยังของฉัน · Copy to my plans</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== PLAN EDIT (host) ===== -->
+  <sc-if value="{{ planEditOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePlanEdit }}" style="position:absolute;inset:0;z-index:42;background:rgba(74,63,85,.42);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:43;max-height:94%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="padding:14px 22px 4px;flex:none;">
+        <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">ตั้งค่าแพลน ⚙️</div>
+          <button onClick="{{ closePlanEdit }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:8px 20px 16px;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:8px;">ชื่อแพลน · Plan name</div>
+        <input value="{{ ed.name }}" onInput="{{ setEdName }}" style="width:100%;border:2px solid #EEE6F3;border-radius:16px;background:#fff;padding:13px 15px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;outline:none;" />
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">สี &amp; ไอคอน · Look</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;gap:9px;">
+            <sc-for list="{{ edThemes }}" as="ct" hint-placeholder-count="4"><button onClick="{{ ct.onTap }}" style="{{ ct.style }}"><sc-if value="{{ ct.active }}" hint-placeholder-val="{{ false }}"><span style="color:#fff;font-size:15px;font-weight:800;">✓</span></sc-if></button></sc-for>
+          </div>
+          <div style="width:1px;height:30px;background:#EEE6F3;"></div>
+          <div style="display:flex;gap:7px;">
+            <sc-for list="{{ edEmojis }}" as="ce" hint-placeholder-count="5"><button onClick="{{ ce.onTap }}" style="{{ ce.style }}">{{ ce.emoji }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">ชนิดเป้าหมาย · Goal type</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+          <sc-for list="{{ edTypeCards }}" as="gt" hint-placeholder-count="4"><button onClick="{{ gt.onTap }}" style="{{ gt.style }}"><span style="font-size:22px;">{{ gt.emoji }}</span><div style="text-align:left;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;color:#4A3F55;">{{ gt.title }}</div><div style="font-size:10.5px;font-weight:700;color:#B0A4BC;">{{ gt.sub }}</div></div></button></sc-for>
+        </div>
+
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:16px 0 8px;">{{ edTargetLabel }}</div>
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 6px 16px rgba(180,120,150,.1);margin-bottom:9px;">
+          <button onClick="{{ decEdTarget }}" style="width:36px;height:36px;border:none;border-radius:12px;background:#F1E8F5;color:#8A7C93;font-size:20px;font-weight:800;cursor:pointer;flex:none;">−</button>
+          <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">{{ edTargetText }}</div>
+          <button onClick="{{ incEdTarget }}" style="width:36px;height:36px;border:none;border-radius:12px;background:{{ g.pcSoft }};color:{{ g.pc }};font-size:20px;font-weight:800;cursor:pointer;flex:none;">＋</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ edTargetOptions }}" as="to" hint-placeholder-count="4"><button onClick="{{ to.onTap }}" style="{{ to.style }}">{{ to.label }}</button></sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;">
+          <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;">หมวดในปฏิทิน · Calendar categories</div>
+          <button onClick="{{ addCat }}" style="border:none;border-radius:11px;background:{{ g.pcSoft }};color:{{ g.pc }};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;padding:6px 11px;cursor:pointer;">＋ เพิ่ม</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11px;">
+          <sc-for list="{{ edCats }}" as="c" hint-placeholder-count="3">
+            <div style="background:#fff;border-radius:18px;padding:13px 14px;box-shadow:0 6px 16px rgba(180,120,150,.09);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="{{ c.dotStyle }}"></span>
+                <input value="{{ c.en }}" onInput="{{ c.setName }}" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:14px;color:#4A3F55;" />
+                <button onClick="{{ c.remove }}" aria-label="Remove" style="width:28px;height:28px;border:none;border-radius:10px;background:#FBEAF0;color:#E77;font-size:15px;font-weight:800;cursor:pointer;flex:none;">✕</button>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <div style="display:flex;gap:6px;flex:1;align-items:center;">
+                  <sc-for list="{{ c.colors }}" as="cc" hint-placeholder-count="5"><button onClick="{{ cc.onTap }}" style="{{ cc.style }}"></button></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:11px;background:#F4EFF7;border-radius:12px;padding:4px;">
+                <sc-for list="{{ c.units }}" as="u" hint-placeholder-count="3"><button onClick="{{ u.onTap }}" style="{{ u.style }}">{{ u.label }}</button></sc-for>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:11px;">
+                <sc-if value="{{ c.isFree }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:1;display:flex;align-items:center;justify-content:center;background:#EAF8F2;border-radius:12px;padding:12px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;color:#4FC7A8;">🎁 ฟรี · No cost</div>
+                </sc-if>
+                <sc-if value="{{ c.paid }}" hint-placeholder-val="{{ true }}">
+                <div style="flex:1;">
+                  <div style="font-size:10.5px;font-weight:800;color:#B0A4BC;margin-bottom:5px;">{{ c.rateLabel }}</div>
+                  <div style="display:flex;align-items:center;gap:8px;background:#F8F3FA;border-radius:12px;padding:6px 10px;">
+                    <button onClick="{{ c.rateDown }}" style="width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;">−</button>
+                    <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;">฿{{ c.rate }}</div>
+                    <button onClick="{{ c.rateUp }}" style="width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;">＋</button>
+                  </div>
+                </div>
+                </sc-if>
+                <div style="flex:1;">
+                  <div style="font-size:10.5px;font-weight:800;color:#B0A4BC;margin-bottom:5px;">เป้าคาบ · Target</div>
+                  <div style="display:flex;align-items:center;gap:8px;background:#F8F3FA;border-radius:12px;padding:6px 10px;">
+                    <button onClick="{{ c.targetDown }}" style="width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;">−</button>
+                    <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;">{{ c.target }}</div>
+                    <button onClick="{{ c.targetUp }}" style="width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;">＋</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <button onClick="{{ deletePlan }}" style="margin-top:18px;width:100%;border:2px solid #F6D5DF;border-radius:16px;background:#fff;color:#E06B85;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:13px;cursor:pointer;">🗑️ ลบแพลนนี้ · Delete plan</button>
+      </div>
+      <div style="flex:none;padding:12px 20px 22px;background:#FFF8FB;">
+        <button onClick="{{ savePlanEdit }}" style="width:100%;border:none;border-radius:20px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px {{ g.pcShadow }};">บันทึกการตั้งค่า · Save changes ✨</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== EDIT TARGET ===== -->
+  <sc-if value="{{ editTargetOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeEditTarget }}" style="position:absolute;inset:0;z-index:38;background:rgba(74,63,85,.4);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:39;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);padding-bottom:22px;">
+      <div style="padding:14px 22px 4px;">
+        <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;">แก้ไขเป้าหมาย ✎</div><button onClick="{{ closeEditTarget }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;">✕</button></div>
+      </div>
+      <div style="padding:8px 20px 4px;">
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:9px;">{{ editTargetLabel }}</div>
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 6px 16px rgba(180,120,150,.1);margin-bottom:9px;">
+          <button onClick="{{ decEditTarget }}" style="width:36px;height:36px;border:none;border-radius:12px;background:#F1E8F5;color:#8A7C93;font-size:20px;font-weight:800;cursor:pointer;flex:none;">−</button>
+          <div style="flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">{{ editTargetText }}</div>
+          <button onClick="{{ incEditTarget }}" style="width:36px;height:36px;border:none;border-radius:12px;background:{{ g.pcSoft }};color:{{ g.pc }};font-size:20px;font-weight:800;cursor:pointer;flex:none;">＋</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ editTargetOptions }}" as="eo" hint-placeholder-count="4"><button onClick="{{ eo.onTap }}" style="{{ eo.style }}">{{ eo.label }}</button></sc-for>
+        </div>
+        <button onClick="{{ saveEditTarget }}" style="margin-top:18px;width:100%;border:none;border-radius:18px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;padding:15px;cursor:pointer;box-shadow:0 10px 24px {{ g.pcShadow }};">บันทึก · Save target</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== PUBLISH CONFIRM ===== -->
+  <sc-if value="{{ publishOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePublish }}" style="position:absolute;inset:0;z-index:40;background:rgba(74,63,85,.42);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:41;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);padding:14px 22px 24px;">
+      <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 14px;"></div>
+      <div style="text-align:center;">
+        <div style="font-size:52px;">📤</div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;margin-top:6px;">เผยแพร่สู่มาร์เก็ต?</div>
+        <div style="font-size:13px;font-weight:700;color:#B0A4BC;margin-top:4px;line-height:1.4;padding:0 10px;">แชร์โครงสร้างเป้าหมายนี้ให้คนอื่นคัดลอกไปใช้ (คาบเรียนและคอมเมนต์จะไม่ถูกแชร์) · Share this goal's structure — your sessions stay private.</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onClick="{{ closePublish }}" style="flex:1;border:none;border-radius:18px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;">ยกเลิก</button>
+        <button onClick="{{ doPublish }}" style="flex:1.6;border:none;border-radius:18px;background:{{ g.pc }};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;box-shadow:0 10px 24px {{ g.pcShadow }};">เผยแพร่เลย 🚀</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== SETTINGS ===== -->
+  <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSettings }}" style="position:absolute;inset:0;z-index:32;background:rgba(74,63,85,.36);animation:ts-scrim .25s ease;"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:33;max-height:80%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);">
+      <div style="padding:14px 22px 6px;flex:none;">
+        <div style="width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;">ตั้งค่า · Settings</div><button onClick="{{ closeSettings }}" aria-label="Close" style="width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;">✕</button></div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:8px 20px 24px;">
+        <div style="display:flex;align-items:center;gap:13px;background:#fff;border-radius:20px;padding:14px 16px;box-shadow:0 8px 20px rgba(180,120,150,.1);">
+          <div style="width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,{{ g.pc }},{{ g.pc2 }});display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;">พ</div>
+          <div><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;color:#4A3F55;">พิมพ์ชนก · Pimchanok</div><div style="font-size:12px;font-weight:700;color:#B0A4BC;">{{ planCountText }}</div></div>
+        </div>
+        <div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:18px 0 9px;">ธีมสี · App accent</div>
+        <div style="display:flex;gap:11px;">
+          <sc-for list="{{ themeSwatches }}" as="sw" hint-placeholder-count="4"><button onClick="{{ sw.onTap }}" style="{{ sw.style }}"><sc-if value="{{ sw.active }}" hint-placeholder-val="{{ false }}"><span style="color:#fff;font-size:18px;font-weight:800;">✓</span></sc-if></button></sc-for>
+        </div>
+        <div style="margin-top:18px;display:flex;flex-direction:column;gap:10px;">
+          <sc-for list="{{ settingRows }}" as="row" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:13px;background:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 6px 16px rgba(180,120,150,.09);">
+              <span style="font-size:20px;">{{ row.emoji }}</span>
+              <div style="flex:1;"><div style="font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:14px;color:#4A3F55;">{{ row.title }}</div><div style="font-size:11.5px;font-weight:700;color:#B0A4BC;">{{ row.sub }}</div></div>
+              <button onClick="{{ row.onTap }}" style="{{ row.toggleStyle }}"><span style="{{ row.knobStyle }}"></span></button>
+            </div>
+          </sc-for>
+        </div>
+        <button onClick="{{ replayOnboarding }}" style="margin-top:16px;width:100%;border:none;border-radius:18px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:14px;cursor:pointer;">ดูวิธีใช้อีกครั้ง · Replay intro</button>
+        <button onClick="{{ signOut }}" style="margin-top:10px;width:100%;border:2px solid #F6D5DF;border-radius:18px;background:#fff;color:#E06B85;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:13px;cursor:pointer;">🚪 ออกจากระบบ · Sign out</button>
+        <div style="text-align:center;font-size:11px;font-weight:700;color:#C6B6D0;margin-top:12px;">{{ authEmail }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}">
+class Component extends DCLogic {
+  themes = {
+    coral:  { pc:'#FF8AA0', pc2:'#FFB088', soft:'#FFEBF0', border:'#FFC9D6', shadow:'rgba(255,138,160,.4)' },
+    lilac:  { pc:'#B18AF0', pc2:'#8FB8FF', soft:'#F1EBFC', border:'#DBC9F5', shadow:'rgba(177,138,240,.4)' },
+    mint:   { pc:'#4FC7A8', pc2:'#7BD9E0', soft:'#E4F7F1', border:'#BFEBDF', shadow:'rgba(79,199,168,.4)' },
+    sky:    { pc:'#6AAEF5', pc2:'#9BD0FF', soft:'#E7F1FE', border:'#C6E0FB', shadow:'rgba(106,174,245,.4)' },
+  };
+
+  people = {
+    me:        { name:'พิมพ์ชนก', en:'You', initials:'พ', color:'#FF8AA0', online:true, role:'เจ้าของแพลน · Owner' },
+    kru_nan:   { name:'ครูแนน', en:'Kru Nan', initials:'แ', color:'#FF8AA0', online:true, role:'ติวเตอร์คณิต · Math', rate:270 },
+    kru_top:   { name:'ครูท็อป', en:'Kru Top', initials:'ท', color:'#6AAEF5', online:true, role:'ติวเตอร์ฟิสิกส์ · Physics', rate:300 },
+    kru_fah:   { name:'ครูฟ้า', en:'Kru Fah', initials:'ฟ', color:'#4FC7A8', online:false, role:'ติวเตอร์เคมี · Chem', rate:280 },
+    kru_mai:   { name:'ครูใหม่', en:'Kru Mai', initials:'ม', color:'#F4A94C', online:false, role:'ติวเตอร์อังกฤษ · English', rate:250 },
+    coach_bank:{ name:'โค้ชแบงค์', en:'Coach Bank', initials:'บ', color:'#4FC7A8', online:true, role:'เทรนเนอร์ · Trainer', rate:500 },
+    coach_jane:{ name:'ครูเจน', en:'Jane', initials:'จ', color:'#7BD9E0', online:false, role:'ครูโยคะ · Yoga', rate:400 },
+    kru_lisa:  { name:'ครูลิซ่า', en:'Ms. Lisa', initials:'ล', color:'#6AAEF5', online:true, role:'ครู IELTS · IELTS coach', rate:600 },
+    me2:       { name:'ฉัน', en:'You', initials:'พ', color:'#FF8AA0', online:true, role:'เจ้าของแพลน · Owner' },
+  };
+
+  monthTH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  monthEN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  dowTH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  dowFullTH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  reactionEmojis = ['👍','🔥','❤️','💪','🎉','😮'];
+  TODAY = 15;
+
+  goalTypeMeta = {
+    budget:   { emoji:'💰', title:'งบประมาณ', sub:'Budget cap', kicker:'งบรวม · TOTAL FUNDING' },
+    hours:    { emoji:'⏱️', title:'ชั่วโมง', sub:'Total hours', kicker:'ชั่วโมงรวม · TOTAL HOURS' },
+    window:   { emoji:'📆', title:'กำหนดส่ง', sub:'Deadline', kicker:'นับถอยหลัง · DEADLINE' },
+    sessions: { emoji:'🎯', title:'จำนวนคาบ', sub:'Session count', kicker:'จำนวนคาบ · SESSIONS' },
+  };
+
+  state = {
+    authed: false, authStep:'email', authEmail:'', authOtp:'', authCode:'', authError:'', authSending:false,
+    loading: true,
+    screen: 'home', tab: 'cal',
+    onboarding: true,
+    year: 2026, month: 7,
+    activePlanId: 1,
+    dayOpen:false, selDay:null,
+    slotOpen:false, selSlot:null,
+    addOpen:false, settingsOpen:false, createOpen:false,
+    theme: 'coral',
+    toast: null,
+    addSubj:null, addDate:null, addTime:'17:00–19:00', addHours:2,
+    addSets:3, addReps:12, addIntensity:'ปานกลาง',
+    homeTab:'mine',
+    marketOpen:false, selMarket:null, market:null,
+    editTargetOpen:false, editTargetVal:null,
+    planEditOpen:false, editDraft:null,
+    pendingMove:null,
+    reschedOpen:false, reschedId:null,
+    publishOpen:false,
+    chatInput:'', commentDraft:'',
+    messages: [{ id:1, isAi:true, text:'สวัสดีค่ะ! 👋 หนูช่วยดูแลทุกเป้าหมายของคุณได้เลย — ถามเรื่องงบ ชั่วโมง หรือให้จัดคาบให้ก็ได้นะคะ!' }],
+    aiThinking:false,
+    settingsFlags:{ notif:true, presence:true, sound:false, autoBudget:true },
+    plans: null,
+    newGoal: { name:'', type:'budget', target:20000, theme:'coral', emoji:'📚', template:'study' },
+    presenceTick:0,
+  };
+
+  seedPlans(yr, mo, td) {
+    const dim = new Date(yr, mo+1, 0).getDate();
+    const fmtFuture = (days)=>{ const d=new Date(yr,mo,td+days); return d.getDate()+' '+this.monthTH[d.getMonth()].slice(0,3)+'.'; };
+    const alt = (pairs, catMap) => {
+      let id=1;
+      return pairs.map(([day,subj]) => {
+        const c = catMap[subj]; const done = day < td;
+        return { id:id++, day: Math.min(day, dim), subj, time:'17:00–19:00', hours:2, cost:this.catCost(c,2), done,
+          reactions: done?{'👍':2,'🔥':1}:(day%3===0?{'❤️':1}:{}),
+          comments: done?[{ author:this.people[c.ins].en, initials:this.people[c.ins].initials, color:c.color, text:'เตรียมโจทย์มาให้แล้วนะคะ เจอกัน!', time:'2d' }]:[] };
+      });
+    };
+
+    const p1cats = {
+      MATH:{ th:'คณิตศาสตร์', en:'Mathematics', short:'MATH', color:'#FF8AA0', soft:'#FFEBF0', ins:'kru_nan', rate:270, target:12 },
+      PHYS:{ th:'ฟิสิกส์', en:'Physics', short:'PHYS', color:'#6AAEF5', soft:'#E7F1FE', ins:'kru_top', rate:300, target:10 },
+      CHEM:{ th:'เคมี', en:'Chemistry', short:'CHEM', color:'#4FC7A8', soft:'#E4F7F1', ins:'kru_fah', rate:280, target:8 },
+      ENG:{ th:'ภาษาอังกฤษ', en:'English', short:'ENG', color:'#F4A94C', soft:'#FEF0DC', ins:'kru_mai', rate:250, target:8 },
+    };
+    // days spread around "today" so some are done, some upcoming
+    const spread = (subs, offsets)=> offsets.map((o,i)=>[Math.max(1,Math.min(dim,td+o)), subs[i%subs.length]]);
+    const p1sess = alt(spread(['MATH','PHYS','CHEM','ENG'], [-11,-10,-9,-8,-4,-3,-2,-1,3,4,5,10,11]), p1cats);
+
+    const p2cats = {
+      PT:{ th:'เวทเทรนนิ่ง', en:'Weight Training', short:'PT', color:'#4FC7A8', soft:'#E4F7F1', ins:'coach_bank', rate:500, target:14 },
+      HIIT:{ th:'คาร์ดิโอ', en:'HIIT Cardio', short:'HIIT', color:'#FF8AA0', soft:'#FFEBF0', ins:'coach_bank', rate:450, target:8 },
+      YOGA:{ th:'โยคะ', en:'Yoga', short:'YOGA', color:'#7BD9E0', soft:'#E4F9FB', ins:'coach_jane', rate:400, target:6 },
+    };
+    const p2sess = alt(spread(['PT','HIIT','YOGA'], [-12,-9,-7,-5,-2,2,5,9]), p2cats);
+
+    const p3cats = {
+      SPEAK:{ th:'พูด', en:'Speaking', short:'SPK', color:'#6AAEF5', soft:'#E7F1FE', ins:'kru_lisa', rate:600, target:6 },
+      WRITE:{ th:'เขียน', en:'Writing', short:'WRT', color:'#B18AF0', soft:'#F1EBFC', ins:'kru_lisa', rate:600, target:6 },
+      READ:{ th:'อ่าน–ฟัง', en:'Reading & Listening', short:'R&L', color:'#4FC7A8', soft:'#E4F7F1', ins:'kru_lisa', rate:550, target:5 },
+    };
+    const p3sess = alt(spread(['SPEAK','WRITE','READ'], [-13,-6,-1,1,6,13]), p3cats);
+
+    return [
+      { id:1, name:'ติวสอบเข้ามหาลัย', en:'University Entrance Prep', emoji:'📚', theme:'coral', kind:'study',
+        goalType:'budget', budgetTotal:24000, hoursGoal:76, elapsedDays:20, deadlineDays:55, deadlineLabel:'สอบ '+fmtFuture(35),
+        categories:p1cats, sessions:p1sess },
+      { id:2, name:'ฟิตหุ่นรับซัมเมอร์', en:'Summer Shred Plan', emoji:'💪', theme:'mint', kind:'fitness',
+        goalType:'hours', budgetTotal:20000, hoursGoal:40, elapsedDays:20, deadlineDays:70, deadlineLabel:'เป้า '+fmtFuture(50),
+        categories:p2cats, sessions:p2sess },
+      { id:3, name:'พิชิต IELTS 7.0', en:'IELTS 7.0 Sprint', emoji:'🎯', theme:'sky', kind:'study',
+        goalType:'window', budgetTotal:18000, hoursGoal:34, elapsedDays:20, deadlineDays:60, deadlineLabel:'สอบ '+fmtFuture(40),
+        categories:p3cats, sessions:p3sess },
+    ];
+  }
+
+  seedMarket() {
+    return [
+      { id:101, emoji:'📐', name:'ตะลุยโจทย์ TCAS คณิต', en:'TCAS Math Crash Course', theme:'coral', kind:'study', goalType:'sessions',
+        author:'ครูแนน', authorInitials:'แ', authorColor:'#FF8AA0', likes:342, uses:1280,
+        desc:'คอร์สตะลุยโจทย์คณิต 30 คาบ ก่อนสอบ TCAS — แบ่งเป็นแคลคูลัส เรขาคณิต และสถิติ พร้อมชุดข้อสอบเก่า',
+        budgetTotal:30000, hoursGoal:60, deadlineDays:45,
+        categories:{ CALC:{th:'แคลคูลัส',en:'Calculus',short:'CAL',color:'#FF8AA0',soft:'#FFEBF0',ins:'me',rate:300,target:12}, GEO:{th:'เรขาคณิต',en:'Geometry',short:'GEO',color:'#B18AF0',soft:'#F1EBFC',ins:'me',rate:300,target:10}, STAT:{th:'สถิติ',en:'Statistics',short:'STA',color:'#6AAEF5',soft:'#E7F1FE',ins:'me',rate:300,target:8} } },
+      { id:102, emoji:'🏃‍♀️', name:'วิ่งฮาล์ฟมาราธอน 12 สัปดาห์', en:'Half-Marathon in 12 Weeks', theme:'mint', kind:'fitness', goalType:'hours',
+        author:'โค้ชแบงค์', authorInitials:'บ', authorColor:'#4FC7A8', likes:521, uses:2140,
+        desc:'ตารางซ้อมวิ่ง 12 สัปดาห์ ผสมคาร์ดิโอ ลองรัน และเวทขา — ค่อยๆ เพิ่มระยะจนพร้อมลงฮาล์ฟ 21 กม.',
+        budgetTotal:16000, hoursGoal:48, deadlineDays:84,
+        categories:{ LONG:{th:'ลองรัน',en:'Long Run',short:'LR',color:'#4FC7A8',soft:'#E4F7F1',ins:'me',rate:0,target:12}, INT:{th:'อินเทอร์วอล',en:'Intervals',short:'INT',color:'#FF8AA0',soft:'#FFEBF0',ins:'me',rate:0,target:12}, LEG:{th:'เวทขา',en:'Leg Day',short:'LEG',color:'#F4A94C',soft:'#FEF0DC',ins:'coach_bank',rate:500,target:8} } },
+      { id:103, emoji:'🎹', name:'เปียโนสำหรับมือใหม่', en:'Piano for Beginners', theme:'lilac', kind:'study', goalType:'sessions',
+        author:'ครูเจน', authorInitials:'จ', authorColor:'#B18AF0', likes:198, uses:760,
+        desc:'เรียนเปียโนจากศูนย์ใน 20 คาบ — ทฤษฎีดนตรี การอ่านโน้ต และเพลงง่ายๆ เล่นได้จริงภายใน 2 เดือน',
+        budgetTotal:16000, hoursGoal:30, deadlineDays:60,
+        categories:{ THEORY:{th:'ทฤษฎี',en:'Music Theory',short:'THY',color:'#B18AF0',soft:'#F1EBFC',ins:'coach_jane',rate:400,target:6}, PRAC:{th:'ฝึกเล่น',en:'Practice',short:'PRC',color:'#6AAEF5',soft:'#E7F1FE',ins:'coach_jane',rate:400,target:14} } },
+      { id:104, emoji:'🗣️', name:'พูดอังกฤษคล่องใน 30 วัน', en:'Fluent English in 30 Days', theme:'sky', kind:'study', goalType:'window',
+        author:'Ms. Lisa', authorInitials:'ล', authorColor:'#6AAEF5', likes:874, uses:3320,
+        desc:'สปรินต์ 30 วัน เน้นการพูดและฟัง — คุยกับติวเตอร์วันเว้นวัน พร้อมการบ้านสั้นๆ ทุกครั้ง',
+        budgetTotal:18000, hoursGoal:30, deadlineDays:30,
+        categories:{ CONV:{th:'สนทนา',en:'Conversation',short:'CNV',color:'#6AAEF5',soft:'#E7F1FE',ins:'kru_lisa',rate:600,target:10}, LIST:{th:'ฟัง',en:'Listening',short:'LST',color:'#4FC7A8',soft:'#E4F7F1',ins:'kru_lisa',rate:550,target:6} } },
+    ];
+  }
+
+  componentDidMount() {
+    let sess=null; try{ sess=localStorage.getItem('ts_session'); }catch(e){}
+    const now=new Date(); const yr=now.getFullYear(), mo=now.getMonth(), td=now.getDate();
+    this.TODAY = td;
+    this.setState({ plans: this.seedPlans(yr,mo,td), market: this.seedMarket(), addDate:td, selDay:td, year:yr, month:mo, authed: !!sess, authEmail: sess||'', onboarding: !sess });
+    this._pt = setInterval(()=>this.setState(s=>({ presenceTick:s.presenceTick+1 })), 4000);
+    this._loadT = setTimeout(()=>this.setState({ loading:false }), 850);
+    this._setupDrag();
+    this._live = setTimeout(()=>{
+      this.setState(s=>{
+        if(!s.plans) return {};
+        const plans = s.plans.map(p=> p.id===1 ? {...p, sessions:p.sessions.map(x=> x.id===8?{...x, reactions:{...x.reactions,'🔥':(x.reactions['🔥']||0)+1}}:x)}:p);
+        return { plans };
+      });
+      this.showToast('🔥','ครูท็อป reacted in Uni Prep');
+    }, 6500);
+  }
+  componentWillUnmount(){ clearInterval(this._pt); clearTimeout(this._live); this._teardownDrag&&this._teardownDrag(); }
+
+  componentDidUpdate(prevProps, prevState){
+    const st=this.state;
+    if(st.screen==='plan' && st.tab==='ai'){
+      const msgChanged = prevState.messages!==st.messages || prevState.aiThinking!==st.aiThinking;
+      const tabChanged = prevState.tab!=='ai' || prevState.screen!=='plan';
+      if(msgChanged || tabChanged){
+        const el = document.querySelector('[data-scroll-main]');
+        if(el) requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; });
+      }
+    }
+  }
+
+  _setupDrag(){
+    let ghost=null, srcDay=null, dragging=false, startX=0, startY=0, downDay=null;
+    const root=()=> this._rootEl || (this._rootEl=document);
+    const cellAt=(x,y)=>{ const el=document.elementFromPoint(x,y); return el? el.closest('[data-day]'):null; };
+    const clearHi=()=>{ document.querySelectorAll('[data-drop-hi]')?.forEach(e=>{ e.style.outline='none'; e.removeAttribute('data-drop-hi'); }); };
+    const onDown=(e)=>{
+      if(this.state.screen!=='plan'||this.state.tab!=='cal') return;
+      const cell=cellAt(e.clientX,e.clientY);
+      if(!cell || cell.getAttribute('data-has')!=='true') return;
+      downDay=parseInt(cell.getAttribute('data-day'),10); startX=e.clientX; startY=e.clientY; dragging=false;
+    };
+    const onMove=(e)=>{
+      if(downDay==null) return;
+      if(!dragging){
+        if(Math.abs(e.clientX-startX)+Math.abs(e.clientY-startY)<8) return;
+        dragging=true; srcDay=downDay;
+        ghost=document.createElement('div');
+        ghost.textContent=srcDay;
+        ghost.style.cssText='position:fixed;z-index:9999;pointer-events:none;width:44px;height:44px;border-radius:15px;background:'+this.planTheme(this.activePlan()).pc+';color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Baloo Thai 2",sans-serif;font-weight:800;font-size:16px;box-shadow:0 10px 24px rgba(74,63,85,.35);transform:translate(-50%,-50%) scale(1.05);opacity:.95;';
+        document.body.appendChild(ghost);
+      }
+      if(ghost){ ghost.style.left=e.clientX+'px'; ghost.style.top=e.clientY+'px'; }
+      clearHi();
+      const cell=cellAt(e.clientX,e.clientY);
+      if(cell && cell.getAttribute('data-day') && parseInt(cell.getAttribute('data-day'),10)!==srcDay){ cell.style.outline='3px dashed '+this.planTheme(this.activePlan()).pc; cell.style.outlineOffset='-2px'; cell.setAttribute('data-drop-hi','1'); }
+      e.preventDefault();
+    };
+    const onUp=(e)=>{
+      if(dragging){
+        const cell=cellAt(e.clientX,e.clientY);
+        const tgt=cell?parseInt(cell.getAttribute('data-day'),10):null;
+        if(tgt && tgt!==srcDay){ const cnt=(this.activePlan()?this.activePlan().sessions:[]).filter(x=>x.day===srcDay).length; this.setState({ pendingMove:{ from:srcDay, to:tgt, count:cnt } }); }
+      }
+      clearHi();
+      if(ghost){ ghost.remove(); ghost=null; }
+      downDay=null; srcDay=null; dragging=false;
+    };
+    document.addEventListener('pointerdown',onDown,{passive:true});
+    document.addEventListener('pointermove',onMove,{passive:false});
+    document.addEventListener('pointerup',onUp,{passive:true});
+    this._teardownDrag=()=>{ document.removeEventListener('pointerdown',onDown); document.removeEventListener('pointermove',onMove); document.removeEventListener('pointerup',onUp); };
+  }
+
+  moveDaySessions(from,to){
+    let n=0;
+    this.setState(s=>{ const plans=s.plans.map(p=>{ if(p.id!==s.activePlanId) return p; const moved=p.sessions.map(x=>{ if(x.day===from){ n++; return {...x,day:to}; } return x; }); return {...p,sessions:moved}; }); return { plans }; });
+    if(n) this.showToast('🗓️','ย้าย '+n+' คาบ → วันที่ '+to+' · Moved to the '+to+'th');
+  }
+  confirmMove(){ const pm=this.state.pendingMove; if(pm){ this.moveDaySessions(pm.from,pm.to); } this.setState({ pendingMove:null }); }
+  cancelMove(){ this.setState({ pendingMove:null }); }
+
+  theme(){ return this.themes[this.state.theme]; }
+  activePlan(){ return (this.state.plans||[]).find(p=>p.id===this.state.activePlanId) || null; }
+  planTheme(plan){ return this.themes[plan? plan.theme : this.state.theme]; }
+  showToast(emoji,text){ this.setState({ toast:{emoji,text} }); clearTimeout(this._toast); this._toast=setTimeout(()=>this.setState({toast:null}),2800); }
+
+  sendCode(){
+    const email=(this.state.authEmail||'').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ this.setState({ authError:'กรุณาใส่อีเมลให้ถูกต้อง · Enter a valid email' }); return; }
+    const code=String(Math.floor(100000+Math.random()*900000));
+    this.setState({ authStep:'otp', authCode:code, authOtp:'', authError:'' });
+  }
+  setAuthEmail(e){ this.setState({ authEmail:e.target.value, authError:'' }); }
+  emailKey(e){ if(e.key==='Enter') this.sendCode(); }
+  setAuthOtp(e){ const v=(e.target.value||'').replace(/\D/g,'').slice(0,6); this.setState({ authOtp:v, authError:'' }); if(v.length===6) setTimeout(()=>this.verifyOtp(),120); }
+  otpKey(e){ if(e.key==='Enter') this.verifyOtp(); }
+  verifyOtp(){
+    if(this.state.authOtp!==this.state.authCode){ this.setState({ authError:'โค้ดไม่ถูกต้อง · Incorrect code', authOtp:'' }); return; }
+    try{ localStorage.setItem('ts_session', this.state.authEmail.trim()); }catch(err){}
+    this.setState({ authed:true, authError:'', authOtp:'' });
+    this.showToast('🎉','เข้าสู่ระบบแล้ว · Signed in!');
+  }
+  resendCode(){ const code=String(Math.floor(100000+Math.random()*900000)); this.setState({ authCode:code, authOtp:'', authError:'' }); this.showToast('💌','ส่งโค้ดใหม่แล้ว · Code resent'); }
+  changeEmail(){ this.setState({ authStep:'email', authOtp:'', authError:'' }); }
+  signOut(){ try{ localStorage.removeItem('ts_session'); }catch(e){} this.setState({ authed:false, authStep:'email', authEmail:'', authOtp:'', authCode:'', settingsOpen:false, screen:'home', tab:'cal', homeTab:'mine' }); }
+
+  daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+  firstDow(y,m){ return new Date(y,m,1).getDay(); }
+  sessionsFor(plan,day){ return (plan? plan.sessions:[]).filter(s=>s.day===day).sort((a,b)=>a.time.localeCompare(b.time)); }
+
+  catUnit(c){ return c.unit || (c.rate>0 ? 'hr' : 'free'); }
+  catRateLabel(c){ const u=this.catUnit(c); if(u==='free'||!c.rate) return 'ฟรี · Free'; if(u==='session') return '฿'+c.rate+'/คาบ'; return '฿'+c.rate+'/hr'; }
+  catRateShort(c){ const u=this.catUnit(c); if(u==='free'||!c.rate) return 'ฟรี'; if(u==='session') return '฿'+c.rate+'/คาบ'; return '฿'+c.rate+'/hr'; }
+  catCost(c,hours){ const u=this.catUnit(c); if(u==='free'||!c.rate) return 0; if(u==='session') return c.rate; return c.rate*hours; }
+
+  targetStep(type){ return { budget:1000, hours:2, sessions:1, window:7 }[type] || 1; }
+  targetText(type,val){ const n=val||0; if(type==='budget') return '฿'+n.toLocaleString('en-US'); if(type==='hours') return n+' ชม.'; if(type==='sessions') return n+' คาบ'; if(type==='window') return n+' วัน'; return ''+n; }
+  bumpTarget(type,val,dir){ const step=this.targetStep(type); return Math.max(step, (val||0)+dir*step); }
+
+  planMetric(plan){
+    const t = this.planTheme(plan);
+    const sess = plan.sessions||[];
+    const spent = sess.reduce((a,s)=>a+s.cost,0);
+    const hours = sess.reduce((a,s)=>a+s.hours,0);
+    const count = sess.length;
+    const catTargets = Object.values(plan.categories).reduce((a,c)=>a+(c.target||0),0);
+    const meta = this.goalTypeMeta[plan.goalType];
+    const f = n => n.toLocaleString('en-US');
+    let pct, big, sub, remain;
+    if(plan.goalType==='budget'){
+      pct=Math.min(100,Math.round(spent/plan.budgetTotal*100));
+      big='฿'+f(spent); sub='ใช้จาก ฿'+f(plan.budgetTotal); remain='เหลือ ฿'+f(Math.max(0,plan.budgetTotal-spent));
+    } else if(plan.goalType==='hours'){
+      pct=Math.min(100,Math.round(hours/plan.hoursGoal*100));
+      big=hours+' / '+plan.hoursGoal+' ชม.'; sub='ชั่วโมงสะสม'; remain='อีก '+Math.max(0,plan.hoursGoal-hours)+' ชม.';
+    } else if(plan.goalType==='sessions'){
+      pct=Math.min(100,Math.round(count/(catTargets||1)*100));
+      big=count+' / '+(catTargets||count); sub='คาบที่จองแล้ว'; remain='อีก '+Math.max(0,(catTargets-count))+' คาบ';
+    } else {
+      const left=Math.max(0,plan.deadlineDays-plan.elapsedDays);
+      pct=Math.min(100,Math.round(plan.elapsedDays/plan.deadlineDays*100));
+      big=left+' วัน'; sub=plan.deadlineLabel||'ถึงกำหนด'; remain=count+' คาบแล้ว';
+    }
+    return { pct, big, sub, remain, spent, hours, count, meta, t, catTargets };
+  }
+
+  renderVals() {
+    const st=this.state, t=this.theme(), TODAY=this.TODAY;
+    const plans = st.plans || [];
+    const g = { pc:t.pc, pc2:t.pc2, pcSoft:t.soft, pcBorder:t.border, pcShadow:t.shadow };
+    const f = n => n.toLocaleString('en-US');
+
+    const isHome = st.screen==='home';
+    const homeMine = isHome && st.homeTab==='mine';
+    const homeMarket = isHome && st.homeTab==='market';
+    const inPlan = st.screen==='plan';
+    const isCal = inPlan && st.tab==='cal';
+    const isGoals = inPlan && st.tab==='goals';
+    const isTeam = inPlan && st.tab==='team';
+    const isAI = inPlan && st.tab==='ai';
+    const plan = this.activePlan();
+    const pt = plan ? this.planTheme(plan) : t;
+
+    // ---- HOME plan cards ----
+    const planCards = plans.map((p,idx)=>{
+      const m = this.planMetric(p);
+      const insKeys = [...new Set(Object.values(p.categories).map(c=>c.ins))].slice(0,3);
+      const avatars = insKeys.map((k,i)=>{ const pp=this.people[k]; return { initials:pp.initials, style:`width:26px;height:26px;border-radius:50%;background:${pp.color};border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11px;margin-left:${i===0?0:-8}px;` }; });
+      return {
+        onTap: ()=>this.openPlan(p.id),
+        emoji:p.emoji, name:p.name, en:p.en,
+        iconStyle:`width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,${m.t.pc},${m.t.pc2});display:flex;align-items:center;justify-content:center;font-size:26px;flex:none;box-shadow:0 6px 14px ${m.t.shadow};`,
+        glow:`position:absolute;top:-40px;right:-30px;width:120px;height:120px;border-radius:50%;background:${m.t.soft};opacity:.6;`,
+        typeLabel:m.meta.title, typeBadge:`flex:none;background:${m.t.soft};color:${m.t.pc};border-radius:11px;padding:4px 10px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10.5px;`,
+        big:m.big, color:m.t.pc, pctText:m.pct+'%',
+        barStyle:`height:100%;width:${m.pct}%;border-radius:8px;background:linear-gradient(90deg,${m.t.pc},${m.t.pc2});transition:width .6s cubic-bezier(.34,1.56,.64,1);`,
+        avatars, metaText: m.count+' คาบ · '+insKeys.length+' คน',
+      };
+    });
+
+    // ---- MARKET cards + detail ----
+    const market = st.market || [];
+    const mkCard = (item)=>{ const mt=this.themes[item.theme]; const catCount=Object.keys(item.categories).length;
+      return { item, emoji:item.emoji, name:item.name, en:item.en, color:mt.pc,
+        iconStyle:`width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,${mt.pc},${mt.pc2});display:flex;align-items:center;justify-content:center;font-size:26px;flex:none;box-shadow:0 6px 14px ${mt.shadow};`,
+        glow:`position:absolute;top:-40px;right:-30px;width:120px;height:120px;border-radius:50%;background:${mt.soft};opacity:.6;`,
+        typeLabel:this.goalTypeMeta[item.goalType].title, typeBadge:`flex:none;background:${mt.soft};color:${mt.pc};border-radius:11px;padding:4px 10px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10.5px;`,
+        desc:item.desc, author:item.author, authorInitials:item.authorInitials, likes:item.likes.toLocaleString('en-US'), uses:item.uses.toLocaleString('en-US'),
+        authorAvatar:`width:24px;height:24px;border-radius:50%;background:${item.authorColor};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11px;`,
+        catCount };
+    };
+    const marketCards = market.map(item=>{ const c=mkCard(item); return {...c, onTap:()=>this.setState({ marketOpen:true, selMarket:item.id }) }; });
+
+    let mkd={ headStyle:'', cats:[] };
+    if(st.selMarket){ const item=market.find(x=>x.id===st.selMarket); if(item){ const mt=this.themes[item.theme]; const c=mkCard(item);
+      mkd={ emoji:item.emoji, name:item.name, en:item.en, typeLabel:c.typeLabel, likes:c.likes, uses:c.uses, desc:item.desc, author:item.author, authorInitials:item.authorInitials, catCount:c.catCount, color:mt.pc, soft:mt.soft, shadow:mt.shadow,
+        headStyle:`padding:16px 20px 18px;background:linear-gradient(135deg,${mt.pc},${mt.pc2});flex:none;`,
+        authorAvatar:`width:38px;height:38px;border-radius:13px;background:${item.authorColor};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;flex:none;`,
+        cats:Object.values(item.categories).map(cc=>({ en:cc.en, color:cc.color, target:cc.target })) };
+    }}
+
+    // ---- header ----
+    let headerTitle='แพลนของฉัน', headerSub='My study & training plans', viewingText='📌 '+plans.length+' เป้าหมายกำลังทำงาน · '+plans.length+' active goals';
+    if(homeMarket){ headerTitle='มาร์เก็ต'; headerSub='Explore & copy community goals'; viewingText='🛍️ '+(st.market||[]).length+' แพลนให้คัดลอก · templates to copy'; }
+    if(inPlan && plan){
+      const online = [...new Set(Object.values(plan.categories).map(c=>c.ins))].filter(k=>this.people[k].online).length;
+      if(isCal){ headerTitle=this.monthTH[st.month]; headerSub=plan.emoji+' '+plan.name; }
+      else if(isGoals){ headerTitle='เป้าหมาย'; headerSub=plan.emoji+' '+plan.name; }
+      else if(isTeam){ headerTitle='ทีมของแพลน'; headerSub=plan.emoji+' '+plan.name; }
+      else if(isAI){ headerTitle='ผู้ช่วย AI'; headerSub=plan.emoji+' '+plan.name; }
+      viewingText='👀 '+(online+1)+' คนกำลังดูแพลนนี้ · viewing now';
+      if(isAI) viewingText='✨ รู้ข้อมูลทุกเป้าหมายของคุณ · knows all your goals';
+    }
+
+    // ---- presence ----
+    let presKeys = ['me','kru_nan','kru_top'];
+    if(inPlan && plan){ presKeys = ['me', ...new Set(Object.values(plan.categories).map(c=>c.ins))].slice(0,3); }
+    const presenceAvatars = presKeys.map((k,i)=>{ const p=this.people[k]; return { name:p.en, initials:p.initials, online:p.online, wrap:`position:relative;margin-left:${i===0?0:-9}px;z-index:${10-i};`, style:`width:30px;height:30px;border-radius:50%;background:${p.color};border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;` }; });
+
+    // ---- calendar ----
+    const weekdays = this.dowTH.map((d,i)=>({ label:d, style:`text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:11px;color:${i===0||i===6?'#D6A0B5':'#B0A4BC'};padding:4px 0;` }));
+    const dim=this.daysInMonth(st.year,st.month), fd=this.firstDow(st.year,st.month);
+    const cells=[];
+    for(let i=0;i<fd;i++) cells.push({ dayNum:'', style:'aspect-ratio:1;background:transparent;border:none;padding:0;', numStyle:'', dots:[], onTap:()=>{} });
+    for(let d=1;d<=dim;d++){
+      const ds=this.sessionsFor(plan,d), isToday=d===TODAY, has=ds.length>0;
+      const dots=ds.slice(0,3).map(s=>({ style:`width:5px;height:5px;border-radius:50%;background:${plan.categories[s.subj].color};` }));
+      let bg = has?'#fff':'rgba(255,255,255,.45)';
+      if(isToday) bg=pt.pc;
+      cells.push({ dayNum:d,
+        style:`aspect-ratio:1;border:none;border-radius:15px;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:${has&&!isToday?'0 4px 10px rgba(180,120,150,.1)':(isToday?'0 6px 14px '+pt.shadow:'none')};padding:0;`,
+        numStyle:`font-family:'Baloo Thai 2',sans-serif;font-weight:${isToday?800:600};font-size:14px;color:${isToday?'#fff':(has?'#4A3F55':'#B7A9C2')};`,
+        dots, hasSess:has, onTap:()=>this.setState({ dayOpen:true, selDay:d }) });
+    }
+    const legendTitle = plan ? (plan.goalType==='hours'?'กิจกรรม · Activities':'หมวดหมู่ · Categories') : 'หมวดหมู่';
+    const legend = plan ? Object.keys(plan.categories).map(k=>{ const s=plan.categories[k], ins=this.people[s.ins]; const count=plan.sessions.filter(x=>x.subj===k).length; return { th:s.th, en:s.en, insEn:ins.en, rate:s.rate, rateLabel:this.catRateShort(s), color:s.color, count, dotStyle:`width:14px;height:14px;border-radius:6px;background:${s.color};flex:none;` }; }) : [];
+
+    // ---- goals (type-adaptive) ----
+    let goalPrimary={}, goalSecondary=[], subjectGoals=[], perCatTitle='คาบต่อหมวด · Per category 🎯';
+    if(plan){
+      const m=this.planMetric(plan);
+      goalPrimary={ kicker:m.meta.kicker, emoji:m.meta.emoji, big:m.big, sub:m.sub, pctText:m.pct+'% ', remainText:m.remain,
+        barStyle:`height:100%;width:${m.pct}%;border-radius:10px;background:rgba(255,255,255,.95);transition:width .6s cubic-bezier(.34,1.56,.64,1);` };
+      // secondary cards depend on type
+      const budgetPct=Math.min(100,Math.round(m.spent/plan.budgetTotal*100));
+      const hoursPct=Math.min(100,Math.round(m.hours/plan.hoursGoal*100));
+      const timePct=Math.min(100,Math.round(plan.elapsedDays/plan.deadlineDays*100));
+      const cBudget={ label:'งบใช้ไป · SPENT', value:'฿'+f(m.spent), size:'22px', barStyle:`height:100%;width:${budgetPct}%;border-radius:8px;background:linear-gradient(90deg,${pt.pc},${pt.pc2});`, foot:'จาก ฿'+f(plan.budgetTotal) };
+      const cHours={ label:'ชั่วโมง · HOURS', value:m.hours+' ชม.', size:'22px', barStyle:`height:100%;width:${hoursPct}%;border-radius:8px;background:linear-gradient(90deg,${pt.pc},${pt.pc2});`, foot:hoursPct+'% ของเป้า' };
+      const cTime={ label:'ช่วงเวลา · TIMELINE', value:Math.max(0,plan.deadlineDays-plan.elapsedDays)+' วัน', size:'20px', barStyle:`height:100%;width:${timePct}%;border-radius:8px;background:linear-gradient(90deg,${pt.pc},${pt.pc2});`, foot:plan.deadlineLabel };
+      const cSess={ label:'คาบรวม · SESSIONS', value:''+m.count, size:'22px', barStyle:`height:100%;width:${Math.min(100,Math.round(m.count/(m.catTargets||1)*100))}%;border-radius:8px;background:linear-gradient(90deg,${pt.pc},${pt.pc2});`, foot:'เป้า '+m.catTargets+' คาบ' };
+      if(plan.goalType==='budget') goalSecondary=[cHours,cTime];
+      else if(plan.goalType==='hours') goalSecondary=[cBudget,cTime];
+      else if(plan.goalType==='window') goalSecondary=[cBudget,cHours];
+      else goalSecondary=[cBudget,cHours];
+      subjectGoals = Object.keys(plan.categories).map(k=>{ const s=plan.categories[k]; const count=plan.sessions.filter(x=>x.subj===k).length; const pct=Math.min(100,Math.round(count/(s.target||1)*100)); return { en:s.en, count, target:s.target, color:s.color, barStyle:`height:100%;width:${pct}%;border-radius:8px;background:${s.color};transition:width .6s;` }; });
+    }
+
+    // ---- team ----
+    const members = plan ? ['me', ...new Set(Object.values(plan.categories).map(c=>c.ins))].map(k=>{ const p=this.people[k]; const isMe=k==='me'; return { name:p.name, en:p.en, role:p.role, online:p.online, initials:p.initials, avatarStyle:`width:46px;height:46px;border-radius:16px;background:${p.color};display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:18px;`, hasRate:!isMe, rateText:'฿'+(p.rate||0)+'/hr', badge:isMe?'เจ้าของ':(p.online?'ออนไลน์':'ออฟไลน์'), badgeStyle:`display:inline-block;border-radius:10px;padding:3px 9px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10.5px;${isMe?`background:${pt.soft};color:${pt.pc};`:(p.online?'background:#E4F7F1;color:#4FC7A8;':'background:#F1ECF5;color:#B0A4BC;')}` }; }) : [];
+
+    // ---- AI ----
+    const messages = st.messages.map(mm=>({ isAi:mm.isAi, text:mm.text, rowStyle:`display:flex;gap:8px;align-items:flex-end;${mm.isAi?'':'flex-direction:row-reverse;'}animation:ts-fadeup .3s ease both;`, bubbleStyle: mm.isAi?`max-width:78%;background:#fff;border-radius:18px 18px 18px 6px;padding:12px 15px;box-shadow:0 6px 16px rgba(180,120,150,.12);font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;line-height:1.4;white-space:pre-wrap;`:`max-width:80%;background:linear-gradient(135deg,${pt.pc},${pt.pc2});border-radius:18px 18px 6px 18px;padding:12px 15px;color:#fff;font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;line-height:1.4;box-shadow:0 6px 16px ${pt.shadow};white-space:pre-wrap;` }));
+    const chips=[{label:'💸 งบพอไหม?',q:'ดูงบของแพลนนี้ให้หน่อย ยังเหลือพอถึงเป้าไหม?'},{label:'📅 จัดคาบให้',q:'ช่วยแนะนำว่าควรเพิ่มคาบอะไรบ้างให้ครบเป้าหมาย'},{label:'⚖️ อะไรขาด?',q:'หมวดไหนที่ยังทำน้อยเกินไปเทียบกับเป้าหมาย?'}].map(c=>({label:c.label,onTap:()=>this.sendChatWith(c.q)}));
+
+    // ---- day sheet ----
+    let dayLabelTH='', dayLabelEN='', daySessions=[], dayEmpty=false;
+    if(st.selDay && plan){
+      const dt=new Date(st.year,st.month,st.selDay);
+      dayLabelTH='วัน'+this.dowFullTH[dt.getDay()]+' '+st.selDay+' '+this.monthTH[st.month];
+      dayLabelEN=this.monthEN[st.month]+' '+st.selDay+', '+st.year;
+      const ss=this.sessionsFor(plan,st.selDay); dayEmpty=ss.length===0;
+      daySessions=ss.map(s=>{ const subj=plan.categories[s.subj], ins=this.people[subj.ins]; const rk=Object.keys(s.reactions).filter(k=>s.reactions[k]>0); return {
+        onTap:()=>this.setState({slotOpen:true,selSlot:s.id}),
+        cardStyle:`width:100%;border:none;background:#fff;border-radius:20px;padding:14px;display:flex;gap:12px;align-items:stretch;box-shadow:0 8px 20px rgba(180,120,150,.1);cursor:pointer;text-align:left;${s.done?'opacity:.72;':''}`,
+        stripeStyle:`width:5px;border-radius:4px;background:${subj.color};flex:none;`, time:s.time, short:subj.short,
+        pillStyle:`background:${subj.soft};color:${subj.color};border-radius:8px;padding:2px 8px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10px;`,
+        subjTh:subj.th, insInitials:ins.initials, insAvatar:`width:22px;height:22px;border-radius:50%;background:${ins.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10px;`,
+        insEn:ins.en, cost:f(s.cost), hasReactions:rk.length>0, reactSummary:rk.map(k=>k+s.reactions[k]).join(' ') }; });
+    }
+
+    // ---- slot detail ----
+    let slot={ headStyle:'', reactions:[], palette:[], comments:[], noComments:false };
+    if(st.selSlot && plan){
+      const s=plan.sessions.find(x=>x.id===st.selSlot);
+      if(s){ const subj=plan.categories[s.subj], ins=this.people[subj.ins]; const dt=new Date(st.year,st.month,s.day);
+        slot.headStyle=`padding:16px 20px 18px;background:linear-gradient(135deg,${subj.color},${subj.color}cc);flex:none;`;
+        slot.short=subj.short; slot.subjTh=subj.th; slot.subjEn=subj.en; slot.time=s.time; slot.dateShort=s.day+' '+this.monthTH[st.month].slice(0,3)+'.'; slot.cost=f(s.cost);
+        slot.insInitials=ins.initials; slot.insAvatar=`width:40px;height:40px;border-radius:14px;background:${ins.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;flex:none;`;
+        slot.insTh=ins.name; slot.insEn=ins.en; slot.rate=subj.rate; slot.rateLabel=this.catRateLabel(subj); slot.hoursText=s.hours+' ชม.';
+        const active=Object.keys(s.reactions).filter(k=>s.reactions[k]>0);
+        slot.reactions=active.map(k=>({ emoji:k, count:s.reactions[k], onTap:()=>this.toggleReaction(s.id,k), style:`display:flex;align-items:center;gap:5px;border:1.5px solid ${subj.color};background:${subj.soft};border-radius:14px;padding:6px 11px;cursor:pointer;color:${subj.color};` }));
+        slot.palette=this.reactionEmojis.filter(e=>!active.includes(e)).map(e=>({ emoji:e, onTap:()=>this.toggleReaction(s.id,e) }));
+        slot.comments=s.comments.map(c=>({ author:c.author, initials:c.initials, text:c.text, time:c.time, avatarStyle:`width:30px;height:30px;border-radius:50%;background:${c.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;flex:none;` }));
+        slot.noComments=s.comments.length===0;
+        slot.isFitness = plan.kind==='fitness' && (s.sets||s.reps);
+        slot.sets = s.sets||'—'; slot.reps = s.reps||'—'; slot.intensity = s.intensity||'—';
+      }
+    }
+
+    // ---- add form ----
+    let addSubjects=[], addDays=[], addTimes=[], addCost=0, addMetricLabel='', addMetricValue='', addBudgetBarStyle='', addBudgetText='', isFitnessAdd=false, addHoursLabel='จำนวนชั่วโมง · Hours', intensityOpts=[];
+    if(plan){
+      const curSubj = st.addSubj && plan.categories[st.addSubj] ? st.addSubj : Object.keys(plan.categories)[0];
+      addSubjects=Object.keys(plan.categories).map(k=>{ const s=plan.categories[k], active=curSubj===k; return { en:s.en, rate:s.rate, rateLabel:this.catRateShort(s), onTap:()=>this.setState({addSubj:k}), style:`display:flex;align-items:center;gap:9px;border:2px solid ${active?s.color:'#EEE6F3'};background:${active?s.soft:'#fff'};border-radius:16px;padding:11px 12px;cursor:pointer;`, dotStyle:`width:12px;height:12px;border-radius:5px;background:${s.color};flex:none;` }; });
+      const base=st.selDay||14;
+      for(let d=base; d<=base+6 && d<=dim; d++){ const dt=new Date(st.year,st.month,d), active=st.addDate===d; addDays.push({ num:d, dow:this.dowTH[dt.getDay()], onTap:()=>this.setState({addDate:d}), style:`flex:none;width:52px;border:2px solid ${active?pt.pc:'#EEE6F3'};background:${active?pt.pc:'#fff'};color:${active?'#fff':'#8A7C93'};border-radius:16px;padding:8px 0;cursor:pointer;text-align:center;` }); }
+      const slots=['09:00–11:00','13:00–15:00','15:00–17:00','17:00–19:00'];
+      addTimes=slots.map(tt=>{ const active=st.addTime===tt; return { label:tt, onTap:()=>this.setState({addTime:tt}), style:`border:2px solid ${active?pt.pc:'#EEE6F3'};background:${active?pt.soft:'#fff'};color:${active?pt.pc:'#8A7C93'};border-radius:14px;padding:9px 13px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;` }; });
+      const rate=plan.categories[curSubj].rate;
+      addCost=this.catCost(plan.categories[curSubj], st.addHours);
+      const m=this.planMetric(plan);
+      // adaptive preview by goal type
+      if(plan.goalType==='hours'){
+        const after=m.hours+st.addHours; const pct=Math.min(100,Math.round(after/plan.hoursGoal*100));
+        addMetricLabel='ชั่วโมงหลังเพิ่ม · Hours'; addMetricValue=after+' ชม.';
+        addBudgetBarStyle=`height:100%;width:${pct}%;border-radius:6px;background:linear-gradient(90deg,${pt.pc},${pt.pc2});transition:width .4s;`;
+        addBudgetText='฿'+f(addCost)+' · '+pct+'% ของเป้า '+plan.hoursGoal+' ชม.';
+      } else if(plan.goalType==='sessions'){
+        const after=m.count+1; const pct=Math.min(100,Math.round(after/(m.catTargets||1)*100));
+        addMetricLabel='คาบหลังเพิ่ม · Sessions'; addMetricValue=after+' คาบ';
+        addBudgetBarStyle=`height:100%;width:${pct}%;border-radius:6px;background:linear-gradient(90deg,${pt.pc},${pt.pc2});transition:width .4s;`;
+        addBudgetText='฿'+f(addCost)+' · '+pct+'% ของเป้า '+m.catTargets+' คาบ';
+      } else {
+        const after=m.spent+addCost; const pct=Math.min(100,Math.round(after/plan.budgetTotal*100)); const over=after>plan.budgetTotal;
+        addMetricLabel='ค่าใช้จ่ายคาบนี้ · Cost'; addMetricValue='฿'+f(addCost);
+        addBudgetBarStyle=`height:100%;width:${pct}%;border-radius:6px;background:${over?'#FF6B7A':'linear-gradient(90deg,'+pt.pc+','+pt.pc2+')'};transition:width .4s;`;
+        addBudgetText= over?('⚠️ เกินงบ! เหลือ ฿'+f(Math.max(0,plan.budgetTotal-m.spent))):('เหลือ ฿'+f(plan.budgetTotal-after)+' · '+pct+'% used');
+      }
+      isFitnessAdd = plan.kind==='fitness';
+      addHoursLabel = isFitnessAdd ? 'ระยะเวลา · Duration' : 'จำนวนชั่วโมง · Hours';
+      intensityOpts = ['เบา','ปานกลาง','หนัก'].map(lv=>{ const active=st.addIntensity===lv; return { label:lv, onTap:()=>this.setState({addIntensity:lv}), style:`flex:1;border:2px solid ${active?pt.pc:'#EEE6F3'};background:${active?pt.soft:'#fff'};color:${active?pt.pc:'#8A7C93'};border-radius:14px;padding:10px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;` }; });
+    }
+
+    // ---- create goal ----
+    const ng=st.newGoal;
+    const templates=[
+      {key:'study',emoji:'📚',label:'ติวสอบ',vibe:'Ace the exam',type:'budget',theme:'coral',ce:'📚'},
+      {key:'fitness',emoji:'💪',label:'ฟิตเนส',vibe:'Get moving',type:'hours',theme:'mint',ce:'💪'},
+      {key:'deadline',emoji:'🎯',label:'กำหนดส่ง',vibe:'Beat the clock',type:'window',theme:'sky',ce:'🎯'},
+      {key:'music',emoji:'🎹',label:'ดนตรี',vibe:'Learn a skill',type:'sessions',theme:'lilac',ce:'🎹'},
+      {key:'custom',emoji:'✨',label:'กำหนดเอง',vibe:'Your way',type:'sessions',theme:'coral',ce:'✨'},
+    ].map((tp,i)=>{ const active=ng.template===tp.key; const tm=this.themes[tp.theme];
+      return { emoji:tp.emoji, label:tp.label, vibe:tp.vibe, onTap:()=>this.pickTemplate(tp),
+        style:`flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:118px;border:none;border-radius:20px;padding:14px 14px 13px;cursor:pointer;text-align:left;position:relative;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1);transform:scale(${active?1.02:1});background:${active?`linear-gradient(140deg,${tm.pc},${tm.pc2})`:'#fff'};box-shadow:${active?`0 12px 24px ${tm.shadow}`:'0 6px 16px rgba(180,120,150,.1)'};animation:ts-cardin .4s ease both;animation-delay:${i*0.04}s;`,
+        iconStyle:`width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:23px;background:${active?'rgba(255,255,255,.28)':tm.soft};`,
+        labelStyle:`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:${active?'#fff':'#4A3F55'};`,
+        vibeStyle:`font-family:'Nunito',sans-serif;font-weight:700;font-size:10.5px;color:${active?'rgba(255,255,255,.9)':'#B0A4BC'};`,
+        check: active };
+    });
+    const goalTypeCards=Object.keys(this.goalTypeMeta).map(k=>{ const meta=this.goalTypeMeta[k], active=ng.type===k; const th=this.themes[ng.theme]; return { emoji:meta.emoji, title:meta.title, sub:meta.sub, onTap:()=>this.pickGoalType(k), style:`display:flex;align-items:center;gap:9px;border:2px solid ${active?th.pc:'#EEE6F3'};background:${active?th.soft:'#fff'};border-radius:16px;padding:11px 12px;cursor:pointer;text-align:left;` }; });
+    const targetSets={ budget:[[10000,'฿10k'],[20000,'฿20k'],[30000,'฿30k'],[50000,'฿50k']], hours:[[20,'20 ชม.'],[40,'40 ชม.'],[60,'60 ชม.'],[80,'80 ชม.']], sessions:[[10,'10 คาบ'],[20,'20 คาบ'],[30,'30 คาบ'],[40,'40 คาบ']], window:[[14,'2 สัปดาห์'],[30,'1 เดือน'],[60,'2 เดือน'],[90,'3 เดือน']] };
+    const targetLabelMap={ budget:'งบประมาณรวม · Total budget', hours:'เป้าชั่วโมง · Hours target', sessions:'เป้าจำนวนคาบ · Sessions target', window:'ระยะเวลา · Deadline in' };
+    const targetLabel=targetLabelMap[ng.type];
+    const th=this.themes[ng.theme];
+    const targetOptions=(targetSets[ng.type]||[]).map(([val,lab])=>{ const active=ng.target===val; return { label:lab, onTap:()=>this.setState(s=>({newGoal:{...s.newGoal,target:val}})), style:`border:2px solid ${active?th.pc:'#EEE6F3'};background:${active?th.soft:'#fff'};color:${active?th.pc:'#8A7C93'};border-radius:14px;padding:10px 15px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;` }; });
+    const createThemes=Object.keys(this.themes).map(k=>{ const tm=this.themes[k], active=ng.theme===k; return { active, onTap:()=>this.setState(s=>({newGoal:{...s.newGoal,theme:k}})), style:`width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,${tm.pc},${tm.pc2});border:3px solid ${active?'#4A3F55':'#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px ${tm.shadow};` }; });
+    const createEmojis=['📚','💪','🎯','🎨','🎹','🏊'].map(e=>{ const active=ng.emoji===e; return { emoji:e, onTap:()=>this.setState(s=>({newGoal:{...s.newGoal,emoji:e}})), style:`width:38px;height:38px;border-radius:13px;border:2px solid ${active?th.pc:'#EEE6F3'};background:${active?th.soft:'#fff'};cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;` }; });
+
+    // ---- plan edit (host) ----
+    const ed = st.editDraft || { name:'', emoji:'📚', theme:'coral', goalType:'budget', target:0, cats:[] };
+    const edTh = this.themes[ed.theme] || t;
+    const catPalette = ['#FF8AA0','#6AAEF5','#4FC7A8','#F4A94C','#B18AF0','#7BD9E0'];
+    const edThemes = Object.keys(this.themes).map(k=>{ const tm=this.themes[k], active=ed.theme===k; return { active, onTap:()=>this.setState(s=>({editDraft:{...s.editDraft,theme:k}})), style:`width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,${tm.pc},${tm.pc2});border:3px solid ${active?'#4A3F55':'#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px ${tm.shadow};` }; });
+    const edEmojis = ['📚','💪','🎯','🎹','🎨','🏊','🧠','🍰'].map(e=>{ const active=ed.emoji===e; return { emoji:e, onTap:()=>this.setState(s=>({editDraft:{...s.editDraft,emoji:e}})), style:`width:38px;height:38px;border-radius:13px;border:2px solid ${active?edTh.pc:'#EEE6F3'};background:${active?edTh.soft:'#fff'};cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;` }; });
+    const edTypeCards = Object.keys(this.goalTypeMeta).map(k=>{ const meta=this.goalTypeMeta[k], active=ed.goalType===k; return { emoji:meta.emoji, title:meta.title, sub:meta.sub, onTap:()=>this.setEdType(k), style:`display:flex;align-items:center;gap:9px;border:2px solid ${active?edTh.pc:'#EEE6F3'};background:${active?edTh.soft:'#fff'};border-radius:16px;padding:11px 12px;cursor:pointer;text-align:left;` }; });
+    const edSets={ budget:[[10000,'฿10k'],[20000,'฿20k'],[30000,'฿30k'],[50000,'฿50k']], hours:[[20,'20 ชม.'],[40,'40 ชม.'],[60,'60 ชม.'],[80,'80 ชม.']], sessions:[[10,'10 คาบ'],[20,'20 คาบ'],[30,'30 คาบ'],[40,'40 คาบ']], window:[[14,'2 สัปดาห์'],[30,'1 เดือน'],[60,'2 เดือน'],[90,'3 เดือน']] };
+    const edTargetLabel={ budget:'งบประมาณรวม · Total budget', hours:'เป้าชั่วโมง · Hours target', sessions:'เป้าจำนวนคาบ · Sessions target', window:'ระยะเวลา · Deadline in' }[ed.goalType];
+    const edTargetOptions=(edSets[ed.goalType]||[]).map(([val,lab])=>{ const active=ed.target===val; return { label:lab, onTap:()=>this.setState(s=>({editDraft:{...s.editDraft,target:val}})), style:`border:2px solid ${active?edTh.pc:'#EEE6F3'};background:${active?edTh.soft:'#fff'};color:${active?edTh.pc:'#8A7C93'};border-radius:14px;padding:10px 15px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;` }; });
+    const edCats=(ed.cats||[]).map((c,i)=>({
+      en:c.en, rate:c.rate, target:c.target, isFree:(c.unit||'hr')==='free', paid:(c.unit||'hr')!=='free', rateLabel:((c.unit||'hr')==='session'?'฿/คาบ · Per session':'฿/ชม. · Rate'),
+      dotStyle:`width:14px;height:14px;border-radius:6px;background:${c.color};flex:none;`,
+      setName:(e)=>this.setCat(i,'en',e.target.value),
+      remove:()=>this.removeCat(i),
+      rateUp:()=>this.setCat(i,'rate',c.rate+50), rateDown:()=>this.setCat(i,'rate',Math.max(0,c.rate-50)),
+      targetUp:()=>this.setCat(i,'target',c.target+1), targetDown:()=>this.setCat(i,'target',Math.max(1,c.target-1)),
+      units:[{k:'hr',label:'/ชม.'},{k:'session',label:'/คาบ'},{k:'free',label:'ฟรี'}].map(u=>{ const active=(c.unit||'hr')===u.k; return { label:u.label, onTap:()=>this.setCat(i,'unit',u.k), style:`flex:1;border:none;border-radius:10px;padding:7px 4px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;${active?`background:${c.color};color:#fff;`:'background:#fff;color:#A99BB5;'}` }; }),
+      colors: catPalette.map(col=>({ onTap:()=>this.setCat(i,'color',col), style:`width:22px;height:22px;border-radius:8px;background:${col};border:2.5px solid ${c.color===col?'#4A3F55':'#fff'};cursor:pointer;flex:none;box-shadow:0 2px 6px rgba(180,120,150,.15);` })),
+    }));
+
+    return {
+      g,
+      onboarding:st.onboarding,
+      onbFeatures:[{emoji:'🎯',title:'1 เป้าหมาย = 1 ปฏิทิน',sub:'Budget, hours, deadline or sessions'},{emoji:'🤝',title:'วางแผนร่วมกัน',sub:'React & comment live with your team'},{emoji:'✨',title:'ผู้ช่วย AI',sub:'Balances every goal for you'}],
+      finishOnboarding:()=>this.setState({onboarding:false}),
+
+      showAuth: !st.authed,
+      loading: st.loading,
+      notLoading: !st.loading,
+      loadingCards: [0,1,2],
+      authEmailStep: st.authStep==='email', authOtpStep: st.authStep==='otp',
+      authEmail: st.authEmail, authError: st.authError, authCode: st.authCode, authOtp: st.authOtp,
+      authEmailBorder: st.authError ? '#F6D5DF' : '#EEE6F3',
+      maskedEmail: (()=>{ const e=st.authEmail||''; const [u,d]=e.split('@'); if(!d) return e; return (u.length<=2?u:u.slice(0,2)+'•••')+'@'+d; })(),
+      otpCells: Array.from({length:6}).map((_,i)=>{ const ch=st.authOtp[i]||''; const active=i===st.authOtp.length; return { char:ch, style:`width:42px;height:52px;border-radius:14px;background:#fff;border:2px solid ${ch?t.pc:(active?t.pc:'#EEE6F3')};display:flex;align-items:center;justify-content:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:24px;color:#4A3F55;box-shadow:${ch||active?'0 6px 16px '+t.shadow:'none'};transition:all .15s;` }; }),
+      setAuthEmail:(e)=>this.setAuthEmail(e), emailKey:(e)=>this.emailKey(e), sendCode:()=>this.sendCode(),
+      setAuthOtp:(e)=>this.setAuthOtp(e), otpKey:(e)=>this.otpKey(e), verifyOtp:()=>this.verifyOtp(),
+      resendCode:()=>this.resendCode(), changeEmail:()=>this.changeEmail(), signOut:()=>this.signOut(),
+
+      isHome, inPlan, isCal, isGoals, isTeam, isAI,
+      homeMine, homeMarket,
+      segMine:`flex:1;border:none;border-radius:14px;padding:11px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;transition:all .2s;${homeMine?`background:#fff;color:${t.pc};box-shadow:0 4px 12px rgba(180,120,150,.15);`:'background:transparent;color:#A99BB5;'}`,
+      segMarket:`flex:1;border:none;border-radius:14px;padding:11px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;transition:all .2s;${homeMarket?`background:#fff;color:${t.pc};box-shadow:0 4px 12px rgba(180,120,150,.15);`:'background:transparent;color:#A99BB5;'}`,
+      goMine:()=>this.setState({homeTab:'mine'}), goMarket:()=>this.setState({homeTab:'market'}),
+      marketCards, mkd,
+      marketOpen:st.marketOpen, closeMarket:()=>this.setState({marketOpen:false}),
+      likeMarket:()=>this.likeMarket(), copyMarket:()=>this.copyMarket(),
+      headerTitle, headerSub, viewingText, presenceAvatars,
+      backHome:()=>this.setState({screen:'home',dayOpen:false,slotOpen:false}),
+      prevMonth:()=>this.setState(s=>({month:s.month===0?11:s.month-1,year:s.month===0?s.year-1:s.year})),
+      nextMonth:()=>this.setState(s=>({month:s.month===11?0:s.month+1,year:s.month===11?s.year+1:s.year})),
+      openSettings:()=>this.setState({settingsOpen:true}),
+
+      planCards, openCreate:()=>this.setState({createOpen:true}),
+
+      weekdays, cells, legend, legendTitle,
+      navCal:isCal?pt.pc:'#C9BBD3', navGoals:isGoals?pt.pc:'#C9BBD3', navTeam:isTeam?pt.pc:'#C9BBD3', navAI:isAI?pt.pc:'#C9BBD3',
+      goCal:()=>this.setState({tab:'cal'}), goGoals:()=>this.setState({tab:'goals'}), goTeam:()=>this.setState({tab:'team'}), goAI:()=>this.setState({tab:'ai'}),
+      openAdd:()=>this.setState({addOpen:true, addDate:st.selDay||15, addSubj:plan?Object.keys(plan.categories)[0]:null}),
+
+      goalPrimary, goalSecondary, subjectGoals, perCatTitle,
+      openEditTarget:()=>this.openEditTarget(),
+      editTargetOpen:st.editTargetOpen, closeEditTarget:()=>this.setState({editTargetOpen:false}),
+      editTargetLabel: plan?({budget:'งบรวมใหม่ · New budget',hours:'เป้าชั่วโมงใหม่ · New hours',sessions:'เป้าคาบใหม่ · New session goal',window:'กำหนดใหม่ · New deadline'}[plan.goalType]):'',
+      editTargetOptions: this.editTargetOptionsFor(plan),
+      editTargetText: plan ? this.targetText(plan.goalType, st.editTargetVal!=null?st.editTargetVal:0) : '',
+      incEditTarget:()=>this.setState(s=>({editTargetVal:this.bumpTarget(plan.goalType, s.editTargetVal, 1)})),
+      decEditTarget:()=>this.setState(s=>({editTargetVal:this.bumpTarget(plan.goalType, s.editTargetVal, -1)})),
+      saveEditTarget:()=>this.saveEditTarget(),
+      openPublish:()=>this.setState({publishOpen:true}), publishOpen:st.publishOpen, closePublish:()=>this.setState({publishOpen:false}), doPublish:()=>this.doPublish(),
+      openPlanEdit:()=>this.openPlanEdit(), planEditOpen:st.planEditOpen, closePlanEdit:()=>this.setState({planEditOpen:false}),
+      ed, edThemes, edEmojis, edTypeCards, edTargetLabel, edTargetOptions, edCats,
+      edTargetText: this.targetText(ed.goalType, ed.target),
+      incEdTarget:()=>this.setState(s=>({editDraft:{...s.editDraft, target:this.bumpTarget(s.editDraft.goalType, s.editDraft.target, 1)}})),
+      decEdTarget:()=>this.setState(s=>({editDraft:{...s.editDraft, target:this.bumpTarget(s.editDraft.goalType, s.editDraft.target, -1)}})),
+      setEdName:(e)=>this.setState(s=>({editDraft:{...s.editDraft,name:e.target.value}})),
+      addCat:()=>this.addCat(), savePlanEdit:()=>this.savePlanEdit(), deletePlan:()=>this.deletePlan(),
+      members, invite:()=>this.showToast('🔗','คัดลอกลิงก์แล้ว · Invite link copied!'),
+      messages, aiThinking:st.aiThinking, chips,
+      chatInput:st.chatInput, setChatInput:(e)=>this.setState({chatInput:e.target.value}), chatKey:(e)=>{if(e.key==='Enter')this.sendChat();}, sendChat:()=>this.sendChat(),
+      toast:st.toast,
+      pendingMove: st.pendingMove ? {
+        from: st.pendingMove.from, to: st.pendingMove.to,
+        msg: 'ย้าย '+st.pendingMove.count+' คาบ ไปวันที่ '+st.pendingMove.to+' '+this.monthTH[st.month]+'? · Move '+st.pendingMove.count+' session'+(st.pendingMove.count>1?'s':''),
+        fromChip: `width:46px;height:46px;border-radius:15px;background:#F1E8F5;color:#8A7C93;display:flex;align-items:center;justify-content:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:18px;`,
+        toChip: `width:52px;height:52px;border-radius:16px;background:${t.pc};color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;box-shadow:0 8px 18px ${t.shadow};`,
+      } : null,
+      confirmMove:()=>this.confirmMove(), cancelMove:()=>this.cancelMove(), stop:(e)=>{ e.stopPropagation(); },
+      reschedOpen: st.reschedOpen, closeResched:()=>this.setState({reschedOpen:false}),
+      reschedMonth: this.monthTH[st.month],
+      reschedDays: (()=>{ if(!st.reschedOpen||!plan) return []; const cur=(plan.sessions.find(x=>x.id===st.reschedId)||{}).day; const dm=this.daysInMonth(st.year,st.month); return Array.from({length:dm}).map((_,i)=>{ const d=i+1, isCur=d===cur, isToday=d===this.TODAY, has=this.sessionsFor(plan,d).length>0; return { num:d, onTap:()=>this.moveSingleSession(d), style:`aspect-ratio:1;border:none;border-radius:12px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;${isCur?`background:${t.pc};color:#fff;box-shadow:0 6px 14px ${t.shadow};`:(has?`background:${t.soft};color:${t.pc};`:'background:#F4EFF7;color:#8A7C93;')}${isToday&&!isCur?`outline:2px solid ${t.pc};outline-offset:-2px;`:''}` }; }); })(),
+
+      dayOpen:st.dayOpen, closeDay:()=>this.setState({dayOpen:false}), dayLabelTH, dayLabelEN, daySessions, dayEmpty,
+      openAddForDay:()=>this.setState({addOpen:true, dayOpen:false, addDate:st.selDay, addSubj:plan?Object.keys(plan.categories)[0]:null}),
+
+      slotOpen:st.slotOpen, closeSlot:()=>this.setState({slotOpen:false}), slot,
+      rescheduleSlot:()=>this.rescheduleSlot(),
+      commentDraft:st.commentDraft, setCommentDraft:(e)=>this.setState({commentDraft:e.target.value}), commentKey:(e)=>{if(e.key==='Enter')this.addComment();}, addComment:()=>this.addComment(),
+
+      addOpen:st.addOpen, closeAdd:()=>this.setState({addOpen:false}), addSubjects, addDays, addTimes,
+      addHoursText:st.addHours+' ชม.', incHours:()=>this.setState(s=>({addHours:Math.min(4,s.addHours+1)})), decHours:()=>this.setState(s=>({addHours:Math.max(1,s.addHours-1)})),
+      addMetricLabel, addMetricValue, addBudgetBarStyle, addBudgetText, saveSession:()=>this.saveSession(),
+      isFitnessAdd, addHoursLabel, intensityOpts,
+      addSets:st.addSets, addReps:st.addReps,
+      incSets:()=>this.setState(s=>({addSets:Math.min(10,s.addSets+1)})), decSets:()=>this.setState(s=>({addSets:Math.max(1,s.addSets-1)})),
+      incReps:()=>this.setState(s=>({addReps:Math.min(30,s.addReps+1)})), decReps:()=>this.setState(s=>({addReps:Math.max(1,s.addReps-1)})),
+
+      createOpen:st.createOpen, closeCreate:()=>this.setState({createOpen:false}),
+      templates, ngName:ng.name, setNgName:(e)=>this.setState(s=>({newGoal:{...s.newGoal,name:e.target.value}})),
+      goalTypeCards, targetLabel, targetOptions, createThemes, createEmojis, createPlan:()=>this.createPlan(),
+      ngTargetText: this.targetText(ng.type, ng.target),
+      incNgTarget:()=>this.setState(s=>({newGoal:{...s.newGoal, target:this.bumpTarget(s.newGoal.type, s.newGoal.target, 1)}})),
+      decNgTarget:()=>this.setState(s=>({newGoal:{...s.newGoal, target:this.bumpTarget(s.newGoal.type, s.newGoal.target, -1)}})),
+
+      settingsOpen:st.settingsOpen, closeSettings:()=>this.setState({settingsOpen:false}),
+      planCountText: plans.length+' เป้าหมาย · '+plans.length+' active goals',
+      themeSwatches:Object.keys(this.themes).map(k=>{ const tm=this.themes[k], active=st.theme===k; return { active, onTap:()=>this.setState({theme:k}), style:`width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,${tm.pc},${tm.pc2});border:3px solid ${active?'#4A3F55':'#fff'};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px ${tm.shadow};` }; }),
+      settingRows:[{key:'notif',emoji:'🔔',title:'การแจ้งเตือน',sub:'Session & reaction alerts'},{key:'presence',emoji:'👀',title:'แสดงสถานะออนไลน์',sub:'Let others see you viewing'},{key:'sound',emoji:'🔊',title:'เสียงเอฟเฟกต์',sub:'Cute sound feedback'},{key:'autoBudget',emoji:'💰',title:'หักงบอัตโนมัติ',sub:'Deduct cost per booked slot'}].map(r=>{ const on=st.settingsFlags[r.key]; return { emoji:r.emoji, title:r.title, sub:r.sub, onTap:()=>this.toggleFlag(r.key), toggleStyle:`width:48px;height:28px;border:none;border-radius:16px;background:${on?t.pc:'#E3D6EC'};cursor:pointer;position:relative;transition:background .2s;flex:none;`, knobStyle:`position:absolute;top:3px;left:${on?'23px':'3px'};width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 5px rgba(0,0,0,.2);` }; }),
+      replayOnboarding:()=>this.setState({settingsOpen:false,onboarding:true}),
+    };
+  }
+
+  openPlan(id){ const p=(this.state.plans||[]).find(x=>x.id===id); this.setState({ screen:'plan', tab:'cal', activePlanId:id, theme:p?p.theme:this.state.theme, addSubj:p?Object.keys(p.categories)[0]:null }); }
+  pickTemplate(tp){ this.setState(s=>({ newGoal:{...s.newGoal, template:tp.key, type:tp.type, theme:tp.theme, emoji:tp.ce, target:({budget:20000,hours:40,window:30,sessions:20})[tp.type] } })); }
+  pickGoalType(k){ this.setState(s=>({ newGoal:{...s.newGoal, type:k, target:({budget:20000,hours:40,window:30,sessions:20})[k] } })); }
+
+  toggleFlag(key){ this.setState(s=>({ settingsFlags:{...s.settingsFlags,[key]:!s.settingsFlags[key]} })); }
+
+  toggleReaction(id, emoji){
+    this.setState(s=>{ const plans=s.plans.map(p=> p.id===s.activePlanId ? {...p, sessions:p.sessions.map(x=>{ if(x.id!==id) return x; const r={...x.reactions}; if(r[emoji]) delete r[emoji]; else r[emoji]=1; return {...x,reactions:r}; })} : p); return { plans }; });
+    this.showToast(emoji,'รีแอคชันของคุณ · Reaction sent');
+  }
+  addComment(){
+    const text=(this.state.commentDraft||'').trim(); if(!text||!this.state.selSlot) return;
+    this.setState(s=>{ const plans=s.plans.map(p=> p.id===s.activePlanId ? {...p, sessions:p.sessions.map(x=> x.id===s.selSlot?{...x,comments:[...x.comments,{author:'You',initials:'พ',color:this.theme().pc,text,time:'now'}]}:x)} : p); return { plans, commentDraft:'' }; });
+  }
+  saveSession(){
+    const st=this.state, plan=this.activePlan(); if(!plan) return;
+    const subjKey = st.addSubj && plan.categories[st.addSubj] ? st.addSubj : Object.keys(plan.categories)[0];
+    const subj=plan.categories[subjKey]; const cost=this.catCost(subj, st.addHours);
+    const fit = plan.kind==='fitness' ? { sets:st.addSets, reps:st.addReps, intensity:st.addIntensity } : {};
+    this.setState(s=>{ const plans=s.plans.map(p=>{ if(p.id!==s.activePlanId) return p; const nid=Math.max(0,...p.sessions.map(x=>x.id))+1; return {...p, sessions:[...p.sessions,{id:nid,day:st.addDate,subj:subjKey,time:st.addTime,hours:st.addHours,cost,done:false,reactions:{},comments:[],...fit}]}; }); return { plans, addOpen:false, dayOpen:!!st.selDay, selDay:st.addDate }; });
+    this.showToast('🎉','จองคาบแล้ว · Session booked!');
+  }
+  createPlan(){
+    const ng=this.state.newGoal; const th=this.themes[ng.theme];
+    const catName={ study:{th:'คาบติว',en:'Lesson',short:'LES'}, fitness:{th:'คาบเทรน',en:'Training',short:'PT'}, deadline:{th:'คาบเตรียมสอบ',en:'Prep session',short:'PREP'}, music:{th:'คาบเรียน',en:'Practice',short:'PRC'}, custom:{th:'คาบ',en:'Session',short:'SES'} }[ng.template] || {th:'คาบ',en:'Session',short:'SES'};
+    const rate={ study:300, fitness:500, deadline:450, music:400, custom:300 }[ng.template] || 300;
+    const kind = ng.template==='fitness' ? 'fitness' : 'study';
+    const catTarget = ng.type==='sessions'? ng.target : 12;
+    const cats={ MAIN:{ th:catName.th, en:catName.en, short:catName.short, color:th.pc, soft:th.soft, ins:'me', rate, target:catTarget } };
+    this.setState(s=>{
+      const nid=Math.max(0,...s.plans.map(p=>p.id))+1;
+      const plan={ id:nid, name:ng.name||'เป้าหมายใหม่', en:'New goal', emoji:ng.emoji, theme:ng.theme, goalType:ng.type, kind,
+        budgetTotal: ng.type==='budget'?ng.target:15000, hoursGoal: ng.type==='hours'?ng.target:40, deadlineDays: ng.type==='window'?ng.target:30, elapsedDays:0, deadlineLabel:'อีก '+(ng.type==='window'?ng.target:30)+' วัน',
+        categories:cats, sessions:[] };
+      return { plans:[...s.plans, plan], createOpen:false, screen:'plan', tab:'cal', activePlanId:nid, theme:ng.theme, addSubj:'MAIN',
+        newGoal:{ name:'', type:'budget', target:20000, theme:'coral', emoji:'📚', template:'study' } };
+    });
+    this.showToast('✨','สร้างเป้าหมายแล้ว · Goal created!');
+  }
+
+  editTargetOptionsFor(plan){
+    if(!plan) return [];
+    const th=this.planTheme(plan);
+    const cur = plan.goalType==='budget'?plan.budgetTotal : plan.goalType==='hours'?plan.hoursGoal : plan.goalType==='window'?plan.deadlineDays : Object.values(plan.categories).reduce((a,c)=>a+(c.target||0),0);
+    const sel = this.state.editTargetVal!=null ? this.state.editTargetVal : cur;
+    const sets={ budget:[[10000,'฿10k'],[20000,'฿20k'],[30000,'฿30k'],[50000,'฿50k']], hours:[[20,'20 ชม.'],[40,'40 ชม.'],[60,'60 ชม.'],[80,'80 ชม.']], sessions:[[10,'10 คาบ'],[20,'20 คาบ'],[30,'30 คาบ'],[40,'40 คาบ']], window:[[14,'2 สัปดาห์'],[30,'1 เดือน'],[60,'2 เดือน'],[90,'3 เดือน']] }[plan.goalType]||[];
+    return sets.map(([val,lab])=>{ const active=sel===val; return { label:lab, onTap:()=>this.setState({editTargetVal:val}), style:`border:2px solid ${active?th.pc:'#EEE6F3'};background:${active?th.soft:'#fff'};color:${active?th.pc:'#8A7C93'};border-radius:14px;padding:11px 16px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;` }; });
+  }
+  openEditTarget(){ const p=this.activePlan(); if(!p) return; const cur=p.goalType==='budget'?p.budgetTotal:p.goalType==='hours'?p.hoursGoal:p.goalType==='window'?p.deadlineDays:Object.values(p.categories).reduce((a,c)=>a+(c.target||0),0); this.setState({ editTargetOpen:true, editTargetVal:cur }); }
+  saveEditTarget(){
+    const v=this.state.editTargetVal; if(v==null){ this.setState({editTargetOpen:false}); return; }
+    this.setState(s=>{ const plans=s.plans.map(p=>{ if(p.id!==s.activePlanId) return p; const np={...p}; if(p.goalType==='budget')np.budgetTotal=v; else if(p.goalType==='hours')np.hoursGoal=v; else if(p.goalType==='window'){np.deadlineDays=v;np.elapsedDays=Math.min(np.elapsedDays,v);np.deadlineLabel='อีก '+v+' วัน';} else { const keys=Object.keys(np.categories); const per=Math.round(v/keys.length); const cats={}; keys.forEach((k,i)=>{ cats[k]={...np.categories[k], target: i===keys.length-1 ? v-per*(keys.length-1) : per}; }); np.categories=cats; } return np; }); return { plans, editTargetOpen:false }; });
+    this.showToast('✎','อัปเดตเป้าหมายแล้ว · Target updated!');
+  }
+
+  openPlanEdit(){
+    const p=this.activePlan(); if(!p) return;
+    const cur = p.goalType==='budget'?p.budgetTotal : p.goalType==='hours'?p.hoursGoal : p.goalType==='window'?p.deadlineDays : Object.values(p.categories).reduce((a,c)=>a+(c.target||0),0);
+    const cats = Object.keys(p.categories).map(k=>{ const c=p.categories[k]; return { key:k, en:c.en, th:c.th, rate:c.rate, target:c.target, color:c.color, unit:this.catUnit(c) }; });
+    this.setState({ planEditOpen:true, editDraft:{ name:p.name, emoji:p.emoji, theme:p.theme, goalType:p.goalType, target:cur, cats } });
+  }
+  setEdType(k){ this.setState(s=>({ editDraft:{...s.editDraft, goalType:k, target:({budget:20000,hours:40,window:30,sessions:20})[k] } })); }
+  setCat(i, field, value){ this.setState(s=>{ const cats=s.editDraft.cats.map((c,idx)=> idx===i?{...c,[field]:value}:c); return { editDraft:{...s.editDraft, cats} }; }); }
+  removeCat(i){ this.setState(s=>{ if(s.editDraft.cats.length<=1) return {}; const cats=s.editDraft.cats.filter((_,idx)=>idx!==i); return { editDraft:{...s.editDraft, cats} }; }); }
+  addCat(){ this.setState(s=>{ const pal=['#FF8AA0','#6AAEF5','#4FC7A8','#F4A94C','#B18AF0','#7BD9E0']; const color=pal[s.editDraft.cats.length%pal.length]; return { editDraft:{...s.editDraft, cats:[...s.editDraft.cats, { key:'C'+Date.now(), en:'New category', th:'หมวดใหม่', rate:300, target:8, color, unit:'hr' }]} }; }); }
+  savePlanEdit(){
+    const ed=this.state.editDraft; if(!ed) return;
+    const soft = (hex)=>{ return { '#FF8AA0':'#FFEBF0','#6AAEF5':'#E7F1FE','#4FC7A8':'#E4F7F1','#F4A94C':'#FEF0DC','#B18AF0':'#F1EBFC','#7BD9E0':'#E4F9FB' }[hex] || '#F4EFF7'; };
+    this.setState(s=>{
+      const plans=s.plans.map(p=>{ if(p.id!==s.activePlanId) return p;
+        const cats={}; const validKeys=new Set();
+        ed.cats.forEach(c=>{ const key=c.key; validKeys.add(key); const old=p.categories[key]||{}; const unit=c.unit||'hr'; cats[key]={ th:c.th||old.th||c.en, en:c.en||'Category', short:(old.short||c.en.slice(0,3).toUpperCase()), color:c.color, soft:soft(c.color), ins:old.ins||'me', rate:unit==='free'?0:c.rate, target:c.target, unit }; });
+        // reassign sessions whose category was removed to the first remaining category
+        const firstKey=ed.cats[0].key;
+        const sessions=p.sessions.map(x=> validKeys.has(x.subj)?x:{...x, subj:firstKey});
+        const np={...p, name:ed.name||p.name, emoji:ed.emoji, theme:ed.theme, goalType:ed.goalType, categories:cats, sessions };
+        if(ed.goalType==='budget') np.budgetTotal=ed.target;
+        else if(ed.goalType==='hours') np.hoursGoal=ed.target;
+        else if(ed.goalType==='window'){ np.deadlineDays=ed.target; np.elapsedDays=Math.min(p.elapsedDays||0, ed.target); np.deadlineLabel='อีก '+ed.target+' วัน'; }
+        return np;
+      });
+      return { plans, planEditOpen:false, theme:ed.theme };
+    });
+    this.showToast('✨','บันทึกการตั้งค่าแล้ว · Plan updated!');
+  }
+  deletePlan(){
+    this.setState(s=>{ const plans=s.plans.filter(p=>p.id!==s.activePlanId); return { plans, planEditOpen:false, screen:'home', homeTab:'mine', activePlanId: plans[0]?plans[0].id:null }; });
+    this.showToast('🗑️','ลบแพลนแล้ว · Plan deleted');
+  }
+
+  likeMarket(){ this.setState(s=>{ const market=s.market.map(m=>m.id===s.selMarket?{...m,likes:m.likes+1}:m); return {market}; }); this.showToast('❤️','ถูกใจแล้ว · Liked!'); }
+  copyMarket(){
+    const item=(this.state.market||[]).find(x=>x.id===this.state.selMarket); if(!item) return;
+    this.setState(s=>{
+      const nid=Math.max(0,...s.plans.map(p=>p.id))+1;
+      const cats={}; Object.keys(item.categories).forEach(k=>{ cats[k]={...item.categories[k]}; });
+      const plan={ id:nid, name:item.name, en:item.en, emoji:item.emoji, theme:item.theme, kind:item.kind, goalType:item.goalType,
+        budgetTotal:item.budgetTotal, hoursGoal:item.hoursGoal, deadlineDays:item.deadlineDays, elapsedDays:0, deadlineLabel:'อีก '+item.deadlineDays+' วัน',
+        categories:cats, sessions:[] };
+      const market=s.market.map(m=>m.id===item.id?{...m,uses:m.uses+1}:m);
+      return { plans:[...s.plans,plan], market, marketOpen:false, screen:'plan', tab:'cal', activePlanId:nid, theme:item.theme, homeTab:'mine', addSubj:Object.keys(cats)[0] };
+    });
+    this.showToast('🎉','คัดลอกแล้ว! เริ่มวางแผนได้เลย · Copied to your plans');
+  }
+  doPublish(){
+    const plan=this.activePlan(); if(!plan) return;
+    this.setState(s=>{
+      const nid=Math.max(200,...s.market.map(m=>m.id))+1;
+      const cats={}; Object.keys(plan.categories).forEach(k=>{ cats[k]={...plan.categories[k]}; });
+      const item={ id:nid, emoji:plan.emoji, name:plan.name, en:plan.en||'My goal', theme:plan.theme, kind:plan.kind, goalType:plan.goalType,
+        author:'พิมพ์ชนก (You)', authorInitials:'พ', authorColor:this.themes[plan.theme].pc, likes:0, uses:0,
+        desc:'แพลนที่ฉันสร้างเองและเผยแพร่ให้ทุกคนคัดลอกไปใช้ได้ 💛 · A goal I built and shared with the community.',
+        budgetTotal:plan.budgetTotal, hoursGoal:plan.hoursGoal, deadlineDays:plan.deadlineDays, categories:cats };
+      return { market:[item, ...s.market], publishOpen:false };
+    });
+    this.showToast('🚀','เผยแพร่แล้ว! อยู่ในมาร์เก็ตแล้ว · Published to Explore');
+  }
+  rescheduleSlot(){
+    const plan=this.activePlan(); if(!plan) return; const s=plan.sessions.find(x=>x.id===this.state.selSlot); if(!s) return;
+    this.setState({ reschedOpen:true, reschedId:this.state.selSlot });
+  }
+  moveSingleSession(day){
+    const id=this.state.reschedId;
+    this.setState(s=>{ const plans=s.plans.map(p=> p.id===s.activePlanId ? {...p, sessions:p.sessions.map(x=> x.id===id?{...x,day}:x)} : p); return { plans, reschedOpen:false, slotOpen:false }; });
+    this.showToast('🗓️','ย้ายไปวันที่ '+day+' แล้ว · Rescheduled!');
+  }
+
+  sendChat(){ const q=(this.state.chatInput||'').trim(); if(q) this.sendChatWith(q); }
+  async sendChatWith(q){
+    this.setState(s=>({ messages:[...s.messages,{id:Date.now(),isAi:false,text:q}], chatInput:'', aiThinking:true }));
+    const plan=this.activePlan();
+    let ctx='You are a cute, encouraging Thai planning assistant inside a multi-goal scheduling app. Reply in Thai with a little English, warm and concise (2-4 short sentences), 1-2 emoji. ';
+    if(plan){ const m=this.planMetric(plan); const bySubj=Object.keys(plan.categories).map(k=>{const c=plan.categories[k];const n=plan.sessions.filter(x=>x.subj===k).length;return `${c.en}: ${n}/${c.target} (฿${c.rate}/hr)`;}).join('; ');
+      ctx+=`Active goal "${plan.name}" (type: ${plan.goalType}). Budget: ฿${m.spent.toLocaleString()} of ฿${plan.budgetTotal.toLocaleString()}. Hours: ${m.hours}/${plan.hoursGoal}. Sessions: ${m.count}. Categories: ${bySubj}. `; }
+    ctx+=`User question: "${q}"`;
+    try{ const reply=await window.claude.complete(ctx); this.setState(s=>({ messages:[...s.messages,{id:Date.now(),isAi:true,text:(reply||'').trim()||'ขอโทษค่ะ ลองใหม่นะคะ 🙏'}], aiThinking:false })); }
+    catch(e){ this.setState(s=>({ messages:[...s.messages,{id:Date.now(),isAi:true,text:'ตอนนี้เชื่อมต่อ AI ไม่ได้ค่ะ 🥺 ลองใหม่อีกครั้งนะคะ'}], aiThinking:false })); }
+  }
+}
+</script>
+</body>
+</html>

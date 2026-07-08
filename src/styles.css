@@ -1,0 +1,60 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+::-webkit-scrollbar { width: 0; height: 0; }
+
+body {
+  font-family: 'Nunito', 'Baloo Thai 2', sans-serif;
+  background:
+    radial-gradient(1100px 600px at 12% -8%, #FFE3D6 0%, transparent 55%),
+    radial-gradient(900px 620px at 105% 20%, #E5DCFF 0%, transparent 55%),
+    radial-gradient(1000px 700px at 50% 115%, #D9E9FF 0%, transparent 60%),
+    linear-gradient(170deg, #FFF3EC 0%, #FDEFF6 52%, #EFF3FF 100%);
+  min-height: 100dvh;
+}
+
+#root { min-height: 100dvh; }
+
+.stage {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.phone-scale { transform-origin: center center; }
+
+.desk-note {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  font-family: 'Baloo Thai 2', sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #B99FC6;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 480px), (max-height: 700px) {
+  .stage { padding: 0; }
+  .desk-note { display: none; }
+}
+
+@keyframes ts-float { 0%,100%{ transform: translate(0,0) scale(1); } 50%{ transform: translate(14px,-18px) scale(1.06); } }
+@keyframes ts-float2 { 0%,100%{ transform: translate(0,0) scale(1); } 50%{ transform: translate(-18px,14px) scale(1.08); } }
+@keyframes ts-sheetUp { from{ transform: translateY(102%); } to{ transform: translateY(0); } }
+@keyframes ts-scrim { from{ opacity: 0; } to{ opacity: 1; } }
+@keyframes ts-dot { 0%,100%{ transform: scale(1); opacity:1; } 50%{ transform: scale(1.5); opacity:.55; } }
+@keyframes ts-bob { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-5px); } }
+@keyframes ts-toast { 0%{ transform: translate(-50%,-14px) scale(.9); opacity:0; } 12%{ transform: translate(-50%,0) scale(1); opacity:1; } 85%{ transform: translate(-50%,0) scale(1); opacity:1; } 100%{ transform: translate(-50%,-10px) scale(.96); opacity:0; } }
+@keyframes ts-thinking { 0%,80%,100%{ transform: scale(.5); opacity:.4; } 40%{ transform: scale(1); opacity:1; } }
+@keyframes ts-fadeup { from{ transform: translateY(10px); opacity:0; } to{ transform: translateY(0); opacity:1; } }
+@keyframes ts-cardin { from{ transform: translateY(16px) scale(.97); opacity:0; } to{ transform: translateY(0) scale(1); opacity:1; } }
+@keyframes ts-shimmer { 0%{ background-position: -320px 0; } 100%{ background-position: 320px 0; } }
+@keyframes ts-pop { 0%{ transform: scale(.6); opacity:0; } 60%{ transform: scale(1.08); } 100%{ transform: scale(1); opacity:1; } }
+
+button { font-family: inherit; }
+input { font-family: inherit; }
