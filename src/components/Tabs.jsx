@@ -2,6 +2,31 @@ import React from 'react'
 import { sx } from '../util.js'
 
 export function CalendarTab({ v }) {
+  if (v.desktop) {
+    return (
+      <div style={sx('display:flex;gap:22px;align-items:flex-start;')}>
+        <div style={sx('flex:1;min-width:0;max-width:660px;')}>
+          <UpNextCard v={v} />
+          <CalendarGrid v={v} />
+          <div style={sx('text-align:center;margin-top:16px;font-size:12px;font-weight:700;color:#C6B6D0;')}>แตะเพื่อดู · ลากวันเพื่อย้ายคาบ · Tap or drag a day ✨</div>
+        </div>
+        <div style={sx('width:320px;flex:none;')}>
+          <LegendCard v={v} />
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div>
+      <UpNextCard v={v} />
+      <CalendarGrid v={v} />
+      <LegendCard v={v} style="margin-top:18px;" />
+      <div style={sx('text-align:center;margin-top:16px;font-size:12px;font-weight:700;color:#C6B6D0;')}>แตะเพื่อดู · ลากวันเพื่อย้ายคาบ · Tap or drag a day ✨</div>
+    </div>
+  )
+}
+
+function UpNextCard({ v }) {
   return (
     <div>
       {/* Up-next card (Airbnb Trips pattern) */}
@@ -16,11 +41,17 @@ export function CalendarTab({ v }) {
           <span style={sx('color:#D7C8E0;font-size:18px;align-self:center;')}>›</span>
         </button>
       )}
+    </div>
+  )
+}
 
+function CalendarGrid({ v }) {
+  return (
+    <div>
       <div style={sx('display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;')}>
         {v.weekdays.map((w, i) => <div key={i} style={sx(w.style)}>{w.label}</div>)}
       </div>
-      <div style={sx('display:grid;grid-template-columns:repeat(7,1fr);gap:5px;')}>
+      <div style={sx(`display:grid;grid-template-columns:repeat(7,1fr);gap:${v.desktop ? 8 : 5}px;`)}>
         {v.cells.map((cell) => (
           <button key={cell.key} onClick={cell.onTap} data-day={cell.dayNum || undefined} data-has={cell.hasSess ? 'true' : 'false'} style={sx(cell.style)}>
             <span style={sx(cell.numStyle)}>{cell.dayNum}</span>
@@ -30,31 +61,60 @@ export function CalendarTab({ v }) {
           </button>
         ))}
       </div>
+    </div>
+  )
+}
 
-      <div style={sx('margin-top:18px;background:rgba(255,255,255,.72);border-radius:22px;padding:14px 16px;box-shadow:0 8px 22px rgba(180,120,150,.12);')}>
-        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;margin-bottom:10px;")}>{v.legendTitle}</div>
-        <div style={sx('display:flex;flex-direction:column;gap:9px;')}>
-          {v.legend.map((s, i) => (
-            <div key={i} style={sx('display:flex;align-items:center;gap:10px;')}>
-              <span style={sx(s.dotStyle)} />
-              <div style={sx('flex:1;min-width:0;')}>
-                <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:13.5px;color:#4A3F55;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;")}>{s.th}</div>
-                <div style={sx('font-size:11px;font-weight:700;color:#B0A4BC;')}>{s.en} · {s.insEn} · {s.rateLabel}</div>
-              </div>
-              <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;color:${s.color};`)}>{s.count}</div>
+function LegendCard({ v, style = '' }) {
+  return (
+    <div style={sx(`background:rgba(255,255,255,.72);border-radius:22px;padding:14px 16px;box-shadow:0 8px 22px rgba(180,120,150,.12);${style}`)}>
+      <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;margin-bottom:10px;")}>{v.legendTitle}</div>
+      <div style={sx('display:flex;flex-direction:column;gap:9px;')}>
+        {v.legend.map((s, i) => (
+          <div key={i} style={sx('display:flex;align-items:center;gap:10px;')}>
+            <span style={sx(s.dotStyle)} />
+            <div style={sx('flex:1;min-width:0;')}>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:13.5px;color:#4A3F55;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;")}>{s.th}</div>
+              <div style={sx('font-size:11px;font-weight:700;color:#B0A4BC;')}>{s.en} · {s.insEn} · {s.rateLabel}</div>
             </div>
-          ))}
-        </div>
+            <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;color:${s.color};`)}>{s.count}</div>
+          </div>
+        ))}
       </div>
-      <div style={sx('text-align:center;margin-top:16px;font-size:12px;font-weight:700;color:#C6B6D0;')}>แตะเพื่อดู · ลากวันเพื่อย้ายคาบ · Tap or drag a day ✨</div>
     </div>
   )
 }
 
 export function GoalsTab({ v }) {
+  if (v.desktop) {
+    return (
+      <div style={sx('display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;padding-top:4px;')}>
+        <div style={sx('grid-column:1/-1;')}><GoalPrimaryCard v={v} /></div>
+        <MomentumCard v={v} />
+        <GoalSecondaryRow v={v} />
+        <PerCategoryCard v={v} />
+        <div style={sx('display:flex;flex-direction:column;gap:16px;')}>
+          <PlanSettingsRow v={v} />
+          <PublishButton v={v} />
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={sx('display:flex;flex-direction:column;gap:14px;padding-top:4px;')}>
-      <div style={sx(`background:linear-gradient(135deg,${v.pt.pc},${v.pt.pc2});border-radius:26px;padding:20px;box-shadow:0 14px 30px ${v.pt.shadow};color:#fff;animation:ts-fadeup .4s ease both;`)}>
+      <GoalPrimaryCard v={v} />
+      <MomentumCard v={v} />
+      <GoalSecondaryRow v={v} />
+      <PerCategoryCard v={v} />
+      <PlanSettingsRow v={v} />
+      <PublishButton v={v} />
+    </div>
+  )
+}
+
+function GoalPrimaryCard({ v }) {
+  return (
+    <div style={sx(`background:linear-gradient(135deg,${v.pt.pc},${v.pt.pc2});border-radius:26px;padding:20px;box-shadow:0 14px 30px ${v.pt.shadow};color:#fff;animation:ts-fadeup .4s ease both;`)}>
         <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
           <div>
             <div style={sx('font-size:12px;font-weight:800;opacity:.9;letter-spacing:.4px;')}>{v.goalPrimary.kicker}</div>
@@ -72,70 +132,88 @@ export function GoalsTab({ v }) {
         <div style={sx('display:flex;justify-content:space-between;margin-top:8px;font-weight:800;font-size:12.5px;')}>
           <span>{v.goalPrimary.pctText}</span><span>{v.goalPrimary.remainText}</span>
         </div>
+    </div>
+  )
+}
+
+// Momentum strip (adidas Running / Atoms / Google Fit pattern)
+function MomentumCard({ v }) {
+  if (!v.momentum) return null
+  return (
+    <div style={sx('background:#fff;border-radius:22px;padding:14px 17px;box-shadow:0 10px 26px rgba(180,120,150,.12);animation:ts-fadeup .45s ease both;')}>
+      <div style={sx('display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;')}>
+        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;")}>{v.momentum.sub}</div>
+        <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;color:${v.pt.pc};`)}>{v.momentum.streakText}</div>
       </div>
-
-      {/* Momentum strip (adidas Running / Atoms / Google Fit pattern) */}
-      {v.momentum && (
-        <div style={sx('background:#fff;border-radius:22px;padding:14px 17px;box-shadow:0 10px 26px rgba(180,120,150,.12);animation:ts-fadeup .45s ease both;')}>
-          <div style={sx('display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;')}>
-            <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;")}>{v.momentum.sub}</div>
-            <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;color:${v.pt.pc};`)}>{v.momentum.streakText}</div>
-          </div>
-          <div style={sx('display:flex;justify-content:space-between;')}>
-            {v.momentum.days.map((d, i) => (
-              <div key={i} style={sx('display:flex;flex-direction:column;align-items:center;gap:5px;')}>
-                <div style={sx(d.dotStyle)}>{d.mark}</div>
-                <span style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:10px;color:#B0A4BC;")}>{d.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={sx('display:flex;gap:14px;')}>
-        {v.goalSecondary.map((sec, i) => (
-          <div key={i} style={sx('flex:1;background:#fff;border-radius:24px;padding:16px;box-shadow:0 10px 26px rgba(180,120,150,.12);animation:ts-fadeup .5s ease both;')}>
-            <div style={sx('font-size:11px;font-weight:800;color:#B0A4BC;')}>{sec.label}</div>
-            <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:${sec.size};color:#4A3F55;margin-top:4px;line-height:1.15;`)}>{sec.value}</div>
-            <div style={sx('margin-top:10px;height:9px;border-radius:8px;background:#F1ECF5;overflow:hidden;')}><div style={sx(sec.barStyle)} /></div>
-            <div style={sx(`font-size:11px;font-weight:800;color:${v.g.pc};margin-top:6px;`)}>{sec.foot}</div>
+      <div style={sx('display:flex;justify-content:space-between;')}>
+        {v.momentum.days.map((d, i) => (
+          <div key={i} style={sx('display:flex;flex-direction:column;align-items:center;gap:5px;')}>
+            <div style={sx(d.dotStyle)}>{d.mark}</div>
+            <span style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:10px;color:#B0A4BC;")}>{d.label}</span>
           </div>
         ))}
       </div>
-
-      <div style={sx('background:#fff;border-radius:26px;padding:18px 20px;box-shadow:0 12px 30px rgba(180,120,150,.14);animation:ts-fadeup .7s ease both;')}>
-        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;margin-bottom:14px;")}>{v.perCatTitle}</div>
-        <div style={sx('display:flex;flex-direction:column;gap:14px;')}>
-          {v.subjectGoals.map((sg, i) => (
-            <div key={i}>
-              <div style={sx('display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;')}>
-                <span style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:13.5px;color:#4A3F55;")}>{sg.en}</span>
-                <span style={sx(`font-weight:800;font-size:12.5px;color:${sg.color};`)}>{sg.count}/{sg.target}</span>
-              </div>
-              <div style={sx('height:10px;border-radius:8px;background:#F4EFF7;overflow:hidden;')}><div style={sx(sg.barStyle)} /></div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={sx('background:#fff;border-radius:22px;padding:15px 17px;box-shadow:0 10px 26px rgba(180,120,150,.12);display:flex;align-items:center;gap:12px;animation:ts-fadeup .75s ease both;')}>
-        <div style={sx(`width:40px;height:40px;border-radius:14px;background:${v.g.pcSoft};display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;`)}>⚙️</div>
-        <div style={sx('flex:1;min-width:0;')}>
-          <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14.5px;color:#4A3F55;")}>ตั้งค่าแพลน · Plan settings</div>
-          <div style={sx('font-size:11.5px;font-weight:700;color:#B0A4BC;')}>คุณเป็นเจ้าของ · Host — edit anytime</div>
-        </div>
-        <button onClick={v.openPlanEdit} style={sx(`border:none;border-radius:14px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:10px 15px;cursor:pointer;flex:none;box-shadow:0 6px 14px ${v.g.pcShadow};`)}>แก้ไข</button>
-      </div>
-
-      <button onClick={v.openPublish} style={sx(`width:100%;border:2px dashed ${v.g.pcBorder};border-radius:22px;background:${v.g.pcSoft};color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;animation:ts-fadeup .8s ease both;`)}>📤 เผยแพร่สู่มาร์เก็ต · Publish to Explore</button>
     </div>
+  )
+}
+
+function GoalSecondaryRow({ v }) {
+  return (
+    <div style={sx('display:flex;gap:14px;')}>
+      {v.goalSecondary.map((sec, i) => (
+        <div key={i} style={sx('flex:1;background:#fff;border-radius:24px;padding:16px;box-shadow:0 10px 26px rgba(180,120,150,.12);animation:ts-fadeup .5s ease both;')}>
+          <div style={sx('font-size:11px;font-weight:800;color:#B0A4BC;')}>{sec.label}</div>
+          <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:${sec.size};color:#4A3F55;margin-top:4px;line-height:1.15;`)}>{sec.value}</div>
+          <div style={sx('margin-top:10px;height:9px;border-radius:8px;background:#F1ECF5;overflow:hidden;')}><div style={sx(sec.barStyle)} /></div>
+          <div style={sx(`font-size:11px;font-weight:800;color:${v.g.pc};margin-top:6px;`)}>{sec.foot}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PerCategoryCard({ v }) {
+  return (
+    <div style={sx('background:#fff;border-radius:26px;padding:18px 20px;box-shadow:0 12px 30px rgba(180,120,150,.14);animation:ts-fadeup .7s ease both;')}>
+      <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#4A3F55;margin-bottom:14px;")}>{v.perCatTitle}</div>
+      <div style={sx('display:flex;flex-direction:column;gap:14px;')}>
+        {v.subjectGoals.map((sg, i) => (
+          <div key={i}>
+            <div style={sx('display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;')}>
+              <span style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:600;font-size:13.5px;color:#4A3F55;")}>{sg.en}</span>
+              <span style={sx(`font-weight:800;font-size:12.5px;color:${sg.color};`)}>{sg.count}/{sg.target}</span>
+            </div>
+            <div style={sx('height:10px;border-radius:8px;background:#F4EFF7;overflow:hidden;')}><div style={sx(sg.barStyle)} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PlanSettingsRow({ v }) {
+  return (
+    <div style={sx('background:#fff;border-radius:22px;padding:15px 17px;box-shadow:0 10px 26px rgba(180,120,150,.12);display:flex;align-items:center;gap:12px;animation:ts-fadeup .75s ease both;')}>
+      <div style={sx(`width:40px;height:40px;border-radius:14px;background:${v.g.pcSoft};display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;`)}>⚙️</div>
+      <div style={sx('flex:1;min-width:0;')}>
+        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14.5px;color:#4A3F55;")}>ตั้งค่าแพลน · Plan settings</div>
+        <div style={sx('font-size:11.5px;font-weight:700;color:#B0A4BC;')}>คุณเป็นเจ้าของ · Host — edit anytime</div>
+      </div>
+      <button onClick={v.openPlanEdit} style={sx(`border:none;border-radius:14px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:10px 15px;cursor:pointer;flex:none;box-shadow:0 6px 14px ${v.g.pcShadow};`)}>แก้ไข</button>
+    </div>
+  )
+}
+
+function PublishButton({ v }) {
+  return (
+    <button onClick={v.openPublish} style={sx(`width:100%;border:2px dashed ${v.g.pcBorder};border-radius:22px;background:${v.g.pcSoft};color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;animation:ts-fadeup .8s ease both;`)}>📤 เผยแพร่สู่มาร์เก็ต · Publish to Explore</button>
   )
 }
 
 export function TeamTab({ v }) {
   return (
-    <div style={sx('display:flex;flex-direction:column;gap:12px;padding-top:4px;')}>
-      <div style={sx(`background:linear-gradient(135deg,${v.pt.pc},${v.pt.pc2});border-radius:26px;padding:20px;box-shadow:0 14px 30px ${v.pt.shadow};color:#fff;animation:ts-fadeup .4s ease both;`)}>
+    <div style={sx(v.desktop ? 'display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;padding-top:4px;' : 'display:flex;flex-direction:column;gap:12px;padding-top:4px;')}>
+      <div style={sx(`background:linear-gradient(135deg,${v.pt.pc},${v.pt.pc2});border-radius:26px;padding:20px;box-shadow:0 14px 30px ${v.pt.shadow};color:#fff;animation:ts-fadeup .4s ease both;${v.desktop ? 'grid-column:1/-1;' : ''}`)}>
         <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;")}>แชร์แพลนนี้ 🤝</div>
         <div style={sx('font-size:13px;font-weight:700;opacity:.92;margin-top:2px;')}>Invite people to view &amp; react in real time</div>
         <button onClick={v.invite} style={sx(`margin-top:14px;width:100%;border:none;border-radius:16px;background:rgba(255,255,255,.95);color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:13px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.1);`)}>🔗 คัดลอกลิงก์เชิญ · Copy invite link</button>
@@ -179,14 +257,31 @@ export function AiTab({ v }) {
           </div>
         </div>
       )}
-      <div style={sx('height:158px;flex:none;')} />
+      <div style={sx(`height:${v.desktop ? 10 : 158}px;flex:none;`)} />
     </div>
   )
 }
 
 export function AiDock({ v }) {
+  if (v.desktop) {
+    return (
+      <div style={sx('flex:none;padding:10px 40px 26px;position:relative;z-index:6;')}>
+        <div style={sx('max-width:760px;margin:0 auto;')}>
+          <AiDockInner v={v} />
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={sx('position:absolute;left:0;right:0;bottom:82px;z-index:6;padding:0 14px;')}>
+      <AiDockInner v={v} />
+    </div>
+  )
+}
+
+function AiDockInner({ v }) {
+  return (
+    <div>
       <div style={sx('display:flex;gap:8px;overflow-x:auto;padding-bottom:9px;')}>
         {v.chips.map((c, i) => (
           <button key={i} onClick={c.onTap} style={sx("flex:none;border:none;border-radius:14px;background:rgba(255,255,255,.92);color:#7A6C86;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;padding:8px 13px;cursor:pointer;box-shadow:0 4px 12px rgba(180,120,150,.12);white-space:nowrap;")}>{c.label}</button>

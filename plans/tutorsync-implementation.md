@@ -77,6 +77,15 @@ GitHub, and deploy to Netlify.
 - [x] GitHub repo (gh CLI), initial commit, push
 - [x] `netlify deploy --prod`, verify live URL
 
+### Phase 5 — Desktop viewport (added 2026-07-08)
+- [x] `state.desktop` flag (≥1024px, resize-aware) threaded through `v`
+- [x] `DesktopShell` + `Sidebar` + `DesktopHeader` in `Chrome.jsx`; phone
+      frame kept for narrower windows
+- [x] `SheetShell` wrapper: bottom sheets → centered modals on desktop
+- [x] Layout recomposition: home/market card grids, calendar + legend rail,
+      goals 2-col grid, team grid, AI dock as in-flow bottom bar
+- [x] Desktop Playwright smoke suite (17 checks) + mobile regression rerun
+
 ## Validation
 
 - `npm run build` exits 0; no console errors on load

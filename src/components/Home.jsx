@@ -4,12 +4,15 @@ import { sx } from '../util.js'
 const shimmer = 'background:linear-gradient(90deg,#F1ECF5 25%,#F8F3FA 50%,#F1ECF5 75%);background-size:320px 100%;animation:ts-shimmer 1.3s infinite linear;'
 
 export function HomeScreen({ v }) {
+  const cardsGrid = v.desktop ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;align-items:start;' : 'display:flex;flex-direction:column;gap:14px;'
   return (
     <div style={sx('display:flex;flex-direction:column;gap:14px;padding-top:2px;')}>
-      <div style={sx('display:flex;gap:6px;background:rgba(255,255,255,.6);border-radius:18px;padding:5px;box-shadow:0 6px 16px rgba(180,120,150,.08);')}>
-        <button onClick={v.goMine} style={sx(v.segMine)}>🎯 ของฉัน · Mine</button>
-        <button onClick={v.goMarket} style={sx(v.segMarket)}>🛍️ มาร์เก็ต · Explore</button>
-      </div>
+      {!v.desktop && (
+        <div style={sx('display:flex;gap:6px;background:rgba(255,255,255,.6);border-radius:18px;padding:5px;box-shadow:0 6px 16px rgba(180,120,150,.08);')}>
+          <button onClick={v.goMine} style={sx(v.segMine)}>🎯 ของฉัน · Mine</button>
+          <button onClick={v.goMarket} style={sx(v.segMarket)}>🛍️ มาร์เก็ต · Explore</button>
+        </div>
+      )}
 
       {v.homeMarket && (
         <div style={sx('display:flex;flex-direction:column;gap:14px;')}>
@@ -23,6 +26,7 @@ export function HomeScreen({ v }) {
           </div>
 
           <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;padding:0 2px;')}>แพลนยอดนิยมจากคอมมูนิตี้ · Popular templates you can copy ✨</div>
+          <div style={sx(cardsGrid)}>
           {v.marketCards.map((mk) => (
             <button key={mk.id} onClick={mk.onTap} style={sx('width:100%;text-align:left;border:none;background:#fff;border-radius:26px;padding:18px;box-shadow:0 12px 30px rgba(180,120,150,.14);cursor:pointer;animation:ts-cardin .45s ease both;position:relative;overflow:hidden;')}>
               <div style={sx(mk.glow)} />
@@ -44,6 +48,7 @@ export function HomeScreen({ v }) {
               </div>
             </button>
           ))}
+          </div>
           {v.marketEmpty && (
             <div style={sx('text-align:center;padding:30px 20px;')}>
               <div style={sx('font-size:44px;')}>🔍</div>
@@ -56,7 +61,7 @@ export function HomeScreen({ v }) {
       )}
 
       {v.homeMine && (
-        <div style={sx('display:flex;flex-direction:column;gap:14px;')}>
+        <div style={sx(cardsGrid)}>
           {v.loading && v.loadingCards.map((i) => (
             <div key={i} style={sx('background:#fff;border-radius:26px;padding:18px;box-shadow:0 12px 30px rgba(180,120,150,.1);')}>
               <div style={sx('display:flex;align-items:center;gap:13px;')}>
@@ -71,7 +76,7 @@ export function HomeScreen({ v }) {
             </div>
           ))}
           {v.notLoading && (
-            <div style={sx('display:flex;flex-direction:column;gap:14px;')}>
+            <div style={sx(v.desktop ? 'display:contents;' : 'display:flex;flex-direction:column;gap:14px;')}>
               {v.planCards.map((pl) => (
                 <button key={pl.id} onClick={pl.onTap} style={sx('width:100%;text-align:left;border:none;background:#fff;border-radius:26px;padding:18px;box-shadow:0 12px 30px rgba(180,120,150,.14);cursor:pointer;animation:ts-cardin .45s ease both;position:relative;overflow:hidden;')}>
                   <div style={sx(pl.glow)} />

@@ -2,7 +2,7 @@ import React from 'react'
 import { themes, people, monthTH, monthEN, dowTH, dowFullTH, reactionEmojis, goalTypeMeta, seedPlans, seedMarket, catUnit, catCost } from './data.js'
 import { assistantReply } from './ai.js'
 import { fmt } from './util.js'
-import { PhoneFrame } from './components/Chrome.jsx'
+import { AppShell } from './components/Chrome.jsx'
 
 const STORE_KEY = 'ts_data_v1'
 const SESSION_KEY = 'ts_session'
@@ -57,6 +57,7 @@ export default class App extends React.Component {
     plans: null,
     newGoal: { name: '', type: 'budget', target: 20000, theme: 'coral', emoji: '📚', template: 'study' },
     presenceTick: 0,
+    desktop: typeof window !== 'undefined' && window.innerWidth >= 1024,
   }
 
   // ---------- lifecycle ----------
@@ -82,6 +83,11 @@ export default class App extends React.Component {
       authed: !!sess, authEmail: sess || '',
       onboarding: !sess, onbStep: 0,
     })
+    this._onResize = () => {
+      const d = window.innerWidth >= 1024
+      if (d !== this.state.desktop) this.setState({ desktop: d })
+    }
+    window.addEventListener('resize', this._onResize)
     this._pt = setInterval(() => this.setState((s) => ({ presenceTick: s.presenceTick + 1 })), 4000)
     this._loadT = setTimeout(() => this.setState({ loading: false }), 850)
     this._setupDrag()
@@ -98,6 +104,7 @@ export default class App extends React.Component {
   componentWillUnmount() {
     clearInterval(this._pt); clearTimeout(this._live); clearTimeout(this._loadT); clearTimeout(this._toast); clearTimeout(this._aiT); clearTimeout(this._saveT)
     this._teardownDrag && this._teardownDrag()
+    window.removeEventListener('resize', this._onResize)
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -602,15 +609,18 @@ export default class App extends React.Component {
     const cells = []
     for (let i = 0; i < fd; i++) cells.push({ key: 'pad' + i, dayNum: '', style: 'aspect-ratio:1;background:transparent;border:none;padding:0;', numStyle: '', dots: [], onTap: () => {} })
     if (plan) {
+      const dotSize = st.desktop ? 6 : 5
+      const numSize = st.desktop ? 15.5 : 14
+      const cellRadius = st.desktop ? 18 : 15
       for (let d = 1; d <= dim; d++) {
         const ds = this.sessionsFor(plan, d), isToday = d === TODAY, has = ds.length > 0
-        const dots = ds.slice(0, 3).map((s) => ({ style: `width:5px;height:5px;border-radius:50%;background:${plan.categories[s.subj] ? plan.categories[s.subj].color : pt.pc};` }))
+        const dots = ds.slice(0, 3).map((s) => ({ style: `width:${dotSize}px;height:${dotSize}px;border-radius:50%;background:${plan.categories[s.subj] ? plan.categories[s.subj].color : pt.pc};` }))
         let bg = has ? '#fff' : 'rgba(255,255,255,.45)'
         if (isToday) bg = pt.pc
         cells.push({
           key: 'd' + d, dayNum: d,
-          style: `aspect-ratio:1;border:none;border-radius:15px;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:${has && !isToday ? '0 4px 10px rgba(180,120,150,.1)' : (isToday ? '0 6px 14px ' + pt.shadow : 'none')};padding:0;`,
-          numStyle: `font-family:'Baloo Thai 2',sans-serif;font-weight:${isToday ? 800 : 600};font-size:14px;color:${isToday ? '#fff' : (has ? '#4A3F55' : '#B7A9C2')};`,
+          style: `aspect-ratio:1;border:none;border-radius:${cellRadius}px;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:${has && !isToday ? '0 4px 10px rgba(180,120,150,.1)' : (isToday ? '0 6px 14px ' + pt.shadow : 'none')};padding:0;`,
+          numStyle: `font-family:'Baloo Thai 2',sans-serif;font-weight:${isToday ? 800 : 600};font-size:${numSize}px;color:${isToday ? '#fff' : (has ? '#4A3F55' : '#B7A9C2')};`,
           dots, hasSess: has, onTap: () => this.setState({ dayOpen: true, selDay: d }),
         })
       }
@@ -886,6 +896,8 @@ export default class App extends React.Component {
 
     return {
       g, t, pt, TODAY,
+      desktop: st.desktop,
+      planIdentity: plan ? { emoji: plan.emoji, name: plan.name, en: plan.en } : null,
       // auth
       showAuth: !st.authed,
       authEmailStep: st.authStep === 'email', authOtpStep: st.authStep === 'otp',
@@ -1013,6 +1025,6 @@ export default class App extends React.Component {
   render() {
     if (!this.state.plans) return null
     const v = this.renderVals()
-    return <PhoneFrame v={v} />
+    return <AppShell v={v} />
   }
 }

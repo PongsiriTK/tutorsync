@@ -32,6 +32,9 @@ template galleries).
   your real plan data (budget left, lagging categories, session suggestions)
 - 🎨 4 pastel accent themes · Thai-first bilingual UI · localStorage
   persistence
+- 🖥️ **Responsive desktop viewport** (≥1024px) — sidebar navigation,
+  multi-column dashboards, calendar with a legend rail, and bottom sheets
+  that become centered modals; narrower windows get the mobile phone frame
 
 ## Run it
 

@@ -1,7 +1,16 @@
 # TutorSync — agent notes
 
-Static React SPA (Vite, React 18, no backend). Thai/English mobile app demo
-rendered in a fixed 390×844 "phone frame" that scales to the viewport.
+Static React SPA (Vite, React 18, no backend). Thai/English app demo with two
+layouts chosen at runtime by `state.desktop` (`window.innerWidth >= 1024`,
+updated on resize):
+
+- **Mobile/phone** (<1024px): fixed 390×844 "phone frame" that scales to the
+  viewport (`PhoneFrame` in `Chrome.jsx`).
+- **Desktop** (≥1024px): `DesktopShell` — left sidebar (brand, nav, plan
+  identity chip, Book-session/New-goal CTA, profile), header row, max-width
+  main column. Home/market cards become grids, calendar gets a right legend
+  rail, goals a 2-column grid. Bottom sheets render as centered modals via
+  the `SheetShell` wrapper in `Sheets.jsx` (`v.desktop` branch).
 
 ## File map
 
@@ -40,6 +49,10 @@ rendered in a fixed 390×844 "phone frame" that scales to the viewport.
 - Mobbin-informed additions vs the original design: stepped onboarding,
   booked-confirmation dialog, up-next card (calendar), momentum strip
   (goals), market search/filter chips. See `plans/tutorsync-implementation.md`.
+- Desktop-vs-mobile branching lives in the components (`v.desktop`), never in
+  CSS media queries — inline-style strings can't carry media queries. Tab
+  content is split into small shared pieces (e.g. `CalendarGrid`,
+  `LegendCard`, `MomentumCard` in `Tabs.jsx`) recomposed per layout.
 
 ## Test / verify
 

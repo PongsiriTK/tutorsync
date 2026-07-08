@@ -2,18 +2,37 @@ import React from 'react'
 import { sx } from '../util.js'
 
 const scrim = (onClick, z) => <div onClick={onClick} style={sx(`position:absolute;inset:0;z-index:${z};background:rgba(74,63,85,.36);animation:ts-scrim .25s ease;`)} />
-const grabber = <div style={sx('width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;')} />
+const grabber = (v) => v.desktop ? null : <div style={sx('width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;')} />
+const lightGrabber = (v) => v.desktop ? null : <div style={sx('width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);margin:0 auto 12px;')} />
 const closeBtn = (onClick) => <button onClick={onClick} aria-label="Close" style={sx('width:34px;height:34px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:18px;font-weight:800;cursor:pointer;')}>✕</button>
 const sheetTitle = (text) => <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;")}>{text}</div>
 const fieldLabel = (text, m = '16px 0 8px') => <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin:${m};`)}>{text}</div>
+
+// Bottom sheet on mobile; centered modal on desktop.
+function SheetShell({ v, z, maxH = '92%', width = 480, extra = '', children }) {
+  if (v.desktop) {
+    return (
+      <div style={sx(`position:absolute;inset:0;z-index:${z};display:flex;align-items:center;justify-content:center;padding:34px;pointer-events:none;`)}>
+        <div style={sx(`pointer-events:auto;width:${width}px;max-width:100%;max-height:88vh;background:#FFF8FB;border-radius:30px;box-shadow:0 34px 90px rgba(74,63,85,.38);display:flex;flex-direction:column;overflow:hidden;animation:ts-pop .34s cubic-bezier(.34,1.56,.64,1) both;${extra}`)}>
+          {children}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div style={sx(`position:absolute;left:0;right:0;bottom:0;z-index:${z};max-height:${maxH};background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);${extra}`)}>
+      {children}
+    </div>
+  )
+}
 
 export function DaySheet({ v }) {
   return (
     <>
       {scrim(v.closeDay, 20)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:80%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.28);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={21} maxH="80%">
         <div style={sx('padding:14px 22px 6px;flex:none;')}>
-          {grabber}
+          {grabber(v)}
           <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
             <div>
               <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:21px;color:#4A3F55;")}>{v.dayLabelTH}</div>
@@ -54,7 +73,7 @@ export function DaySheet({ v }) {
           </div>
           <button onClick={v.openAddForDay} style={sx(`margin-top:14px;width:100%;border:2px dashed ${v.g.pcBorder};border-radius:20px;background:${v.g.pcSoft};color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;`)}>＋ เพิ่มคาบ · Add session</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -64,9 +83,9 @@ export function SlotSheet({ v }) {
   return (
     <>
       {scrim(v.closeSlot, 24)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:25;max-height:90%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={25} maxH="90%">
         <div style={sx(s.headStyle)}>
-          <div style={sx('width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);margin:0 auto 12px;')} />
+          {lightGrabber(v)}
           <div style={sx('display:flex;justify-content:space-between;align-items:flex-start;')}>
             <div>
               <span style={sx("display:inline-block;background:rgba(255,255,255,.28);color:#fff;border-radius:10px;padding:3px 10px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;")}>{s.short}</span>
@@ -123,18 +142,8 @@ export function SlotSheet({ v }) {
             <button onClick={v.addComment} style={sx(`border:none;border-radius:12px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:9px 15px;cursor:pointer;flex:none;`)}>ส่ง</button>
           </div>
         </div>
-      </div>
+      </SheetShell>
     </>
-  )
-}
-
-function Stepper({ dec, inc, text }) {
-  return (
-    <div style={sx('display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:10px 16px;box-shadow:0 6px 16px rgba(180,120,150,.1);')}>
-      <button onClick={dec} style={sx('width:38px;height:38px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:22px;font-weight:800;cursor:pointer;')}>−</button>
-      <div style={sx("flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:22px;color:#4A3F55;")}>{text}</div>
-      <button onClick={inc} style={sx('width:38px;height:38px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:22px;font-weight:800;cursor:pointer;')}>＋</button>
-    </div>
   )
 }
 
@@ -142,9 +151,9 @@ export function AddSheet({ v }) {
   return (
     <>
       {scrim(v.closeAdd, 28)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:29;max-height:92%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={29} maxH="92%">
         <div style={sx('padding:14px 22px 4px;flex:none;')}>
-          {grabber}
+          {grabber(v)}
           <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
             {sheetTitle('เพิ่มคาบ ✏️')}
             {closeBtn(v.closeAdd)}
@@ -177,7 +186,11 @@ export function AddSheet({ v }) {
             {v.addTimes.map((t, i) => <button key={i} onClick={t.onTap} style={sx(t.style)}>{t.label}</button>)}
           </div>
           {fieldLabel(v.addHoursLabel)}
-          <Stepper dec={v.decHours} inc={v.incHours} text={v.addHoursText} />
+          <div style={sx('display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:10px 16px;box-shadow:0 6px 16px rgba(180,120,150,.1);')}>
+            <button onClick={v.decHours} style={sx('width:38px;height:38px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:22px;font-weight:800;cursor:pointer;')}>−</button>
+            <div style={sx("flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:22px;color:#4A3F55;")}>{v.addHoursText}</div>
+            <button onClick={v.incHours} style={sx('width:38px;height:38px;border:none;border-radius:13px;background:#F1E8F5;color:#8A7C93;font-size:22px;font-weight:800;cursor:pointer;')}>＋</button>
+          </div>
 
           {v.isFitnessAdd && (
             <>
@@ -217,7 +230,7 @@ export function AddSheet({ v }) {
         <div style={sx('flex:none;padding:12px 20px 22px;background:#FFF8FB;')}>
           <button onClick={v.saveSession} style={sx(`width:100%;border:none;border-radius:20px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px ${v.g.pcShadow};`)}>บันทึกคาบ · Book session 🎉</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -227,7 +240,7 @@ export function BookedConfirm({ v }) {
   const b = v.booked
   return (
     <div onClick={v.closeBooked} style={sx('position:absolute;inset:0;z-index:46;background:rgba(74,63,85,.42);animation:ts-scrim .2s ease;display:flex;align-items:center;justify-content:center;padding:0 34px;')}>
-      <div onClick={v.stop} style={sx('width:100%;background:#FFF8FB;border-radius:28px;padding:26px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-pop .38s cubic-bezier(.34,1.56,.64,1) both;text-align:center;')}>
+      <div onClick={v.stop} style={sx('width:100%;max-width:400px;background:#FFF8FB;border-radius:28px;padding:26px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-pop .38s cubic-bezier(.34,1.56,.64,1) both;text-align:center;')}>
         <div style={sx('font-size:52px;animation:ts-bob 2.6s ease-in-out infinite;')}>🎉</div>
         <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;margin-top:8px;")}>จองคาบแล้ว!</div>
         <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:2px;')}>Added to your calendar</div>
@@ -248,9 +261,9 @@ export function CreateSheet({ v }) {
   return (
     <>
       {scrim(v.closeCreate, 34)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:35;max-height:94%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={35} maxH="94%" width={520}>
         <div style={sx('padding:14px 22px 4px;flex:none;')}>
-          {grabber}
+          {grabber(v)}
           <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
             {sheetTitle('เป้าหมายใหม่ 🎯')}
             {closeBtn(v.closeCreate)}
@@ -308,7 +321,7 @@ export function CreateSheet({ v }) {
         <div style={sx('flex:none;padding:12px 20px 22px;background:#FFF8FB;')}>
           <button onClick={v.createPlan} style={sx(`width:100%;border:none;border-radius:20px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px ${v.g.pcShadow};`)}>สร้างเป้าหมาย · Create goal ✨</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -318,9 +331,9 @@ export function MarketSheet({ v }) {
   return (
     <>
       {scrim(v.closeMarket, 36)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:37;max-height:90%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={37} maxH="90%">
         <div style={sx(m.headStyle)}>
-          <div style={sx('width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);margin:0 auto 12px;')} />
+          {lightGrabber(v)}
           <div style={sx('display:flex;justify-content:space-between;align-items:flex-start;')}>
             <div style={sx('display:flex;align-items:center;gap:13px;')}>
               <div style={sx('width:56px;height:56px;border-radius:20px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:30px;')}>{m.emoji}</div>
@@ -361,7 +374,7 @@ export function MarketSheet({ v }) {
         <div style={sx('flex:none;padding:12px 20px 22px;background:#FFF8FB;')}>
           <button onClick={v.copyMarket} style={sx(`width:100%;border:none;border-radius:20px;background:${m.color};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px ${m.shadow};`)}>⬇ คัดลอกไปยังของฉัน · Copy to my plans</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -370,9 +383,9 @@ export function PlanEditSheet({ v }) {
   return (
     <>
       {scrim(v.closePlanEdit, 42)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:43;max-height:94%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={43} maxH="94%" width={540}>
         <div style={sx('padding:14px 22px 4px;flex:none;')}>
-          {grabber}
+          {grabber(v)}
           <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
             {sheetTitle('ตั้งค่าแพลน ⚙️')}
             {closeBtn(v.closePlanEdit)}
@@ -468,7 +481,7 @@ export function PlanEditSheet({ v }) {
         <div style={sx('flex:none;padding:12px 20px 22px;background:#FFF8FB;')}>
           <button onClick={v.savePlanEdit} style={sx(`width:100%;border:none;border-radius:20px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 12px 26px ${v.g.pcShadow};`)}>บันทึกการตั้งค่า · Save changes ✨</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -477,15 +490,15 @@ export function EditTargetSheet({ v }) {
   return (
     <>
       {scrim(v.closeEditTarget, 38)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:39;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);padding-bottom:22px;')}>
+      <SheetShell v={v} z={39} maxH="none" extra={v.desktop ? '' : 'padding-bottom:22px;'}>
         <div style={sx('padding:14px 22px 4px;')}>
-          {grabber}
+          {grabber(v)}
           <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
             <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;")}>แก้ไขเป้าหมาย ✎</div>
             {closeBtn(v.closeEditTarget)}
           </div>
         </div>
-        <div style={sx('padding:8px 20px 4px;')}>
+        <div style={sx(`padding:8px 20px ${v.desktop ? '22px' : '4px'};`)}>
           <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;margin-bottom:9px;")}>{v.editTargetLabel}</div>
           <div style={sx('display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 6px 16px rgba(180,120,150,.1);margin-bottom:9px;')}>
             <button onClick={v.decEditTarget} style={sx('width:36px;height:36px;border:none;border-radius:12px;background:#F1E8F5;color:#8A7C93;font-size:20px;font-weight:800;cursor:pointer;flex:none;')}>−</button>
@@ -497,7 +510,7 @@ export function EditTargetSheet({ v }) {
           </div>
           <button onClick={v.saveEditTarget} style={sx(`margin-top:18px;width:100%;border:none;border-radius:18px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;padding:15px;cursor:pointer;box-shadow:0 10px 24px ${v.g.pcShadow};`)}>บันทึก · Save target</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -506,8 +519,8 @@ export function PublishSheet({ v }) {
   return (
     <>
       {scrim(v.closePublish, 40)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:41;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);padding:14px 22px 24px;')}>
-        <div style={sx('width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 14px;')} />
+      <SheetShell v={v} z={41} maxH="none" extra="padding:14px 22px 24px;">
+        <div style={sx(`width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 14px;${v.desktop ? 'display:none;' : ''}`)} />
         <div style={sx('text-align:center;')}>
           <div style={sx('font-size:52px;')}>📤</div>
           <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;margin-top:6px;")}>เผยแพร่สู่มาร์เก็ต?</div>
@@ -517,7 +530,7 @@ export function PublishSheet({ v }) {
           <button onClick={v.closePublish} style={sx("flex:1;border:none;border-radius:18px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;")}>ยกเลิก</button>
           <button onClick={v.doPublish} style={sx(`flex:1.6;border:none;border-radius:18px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;box-shadow:0 10px 24px ${v.g.pcShadow};`)}>เผยแพร่เลย 🚀</button>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -526,9 +539,9 @@ export function SettingsSheet({ v }) {
   return (
     <>
       {scrim(v.closeSettings, 32)}
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:33;max-height:80%;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.3);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);')}>
+      <SheetShell v={v} z={33} maxH="80%">
         <div style={sx('padding:14px 22px 6px;flex:none;')}>
-          {grabber}
+          {grabber(v)}
           <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
             {sheetTitle('ตั้งค่า · Settings')}
             {closeBtn(v.closeSettings)}
@@ -563,7 +576,7 @@ export function SettingsSheet({ v }) {
           <button onClick={v.signOut} style={sx("margin-top:10px;width:100%;border:2px solid #F6D5DF;border-radius:18px;background:#fff;color:#E06B85;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:13px;cursor:pointer;")}>🚪 ออกจากระบบ · Sign out</button>
           <div style={sx('text-align:center;font-size:11px;font-weight:700;color:#C6B6D0;margin-top:12px;')}>{v.authEmail}</div>
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
@@ -572,7 +585,7 @@ export function MoveConfirm({ v }) {
   const pm = v.pendingMove
   return (
     <div onClick={v.cancelMove} style={sx('position:absolute;inset:0;z-index:46;background:rgba(74,63,85,.42);animation:ts-scrim .2s ease;display:flex;align-items:center;justify-content:center;padding:0 34px;')}>
-      <div onClick={v.stop} style={sx('width:100%;background:#FFF8FB;border-radius:28px;padding:24px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-cardin .32s cubic-bezier(.34,1.56,.64,1) both;text-align:center;')}>
+      <div onClick={v.stop} style={sx('width:100%;max-width:400px;background:#FFF8FB;border-radius:28px;padding:24px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-cardin .32s cubic-bezier(.34,1.56,.64,1) both;text-align:center;')}>
         <div style={sx('font-size:46px;animation:ts-bob 2.6s ease-in-out infinite;')}>🗓️</div>
         <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;margin-top:8px;")}>ย้ายคาบเรียน?</div>
         <div style={sx('font-size:13px;font-weight:700;color:#8A7C93;margin-top:6px;line-height:1.45;')}>{pm.msg}</div>
@@ -594,8 +607,8 @@ export function ReschedSheet({ v }) {
   return (
     <>
       <div onClick={v.closeResched} style={sx('position:absolute;inset:0;z-index:44;background:rgba(74,63,85,.42);animation:ts-scrim .2s ease;')} />
-      <div style={sx('position:absolute;left:0;right:0;bottom:0;z-index:45;background:#FFF8FB;border-radius:34px 34px 0 0;box-shadow:0 -14px 40px rgba(180,120,150,.32);display:flex;flex-direction:column;animation:ts-sheetUp .42s cubic-bezier(.34,1.56,.64,1);padding:14px 20px 24px;')}>
-        <div style={sx('width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;')} />
+      <SheetShell v={v} z={45} maxH="none" extra="padding:14px 20px 24px;">
+        <div style={sx(`width:44px;height:5px;border-radius:3px;background:#E8DCEF;margin:0 auto 12px;${v.desktop ? 'display:none;' : ''}`)} />
         <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
           <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;")}>ย้ายไปวันไหน? 🗓️</div>
           {closeBtn(v.closeResched)}
@@ -604,7 +617,7 @@ export function ReschedSheet({ v }) {
         <div style={sx('display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px;')}>
           {v.reschedDays.map((d) => <button key={d.num} onClick={d.onTap} style={sx(d.style)}>{d.num}</button>)}
         </div>
-      </div>
+      </SheetShell>
     </>
   )
 }
