@@ -449,6 +449,15 @@ export function PlanEditSheet({ v }) {
                 <div style={sx('display:flex;gap:5px;margin-top:11px;background:#F4EFF7;border-radius:12px;padding:4px;')}>
                   {c.units.map((u) => <button key={u.key} onClick={u.onTap} style={sx(u.style)}>{u.label}</button>)}
                 </div>
+                <div style={sx('font-size:10.5px;font-weight:800;color:#B0A4BC;margin:11px 0 6px;')}>ผู้สอน · Taught by</div>
+                <div style={sx('display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;')}>
+                  {c.tutors.map((tu) => (
+                    <button key={tu.key} onClick={tu.onTap} style={sx(tu.style)}>
+                      <span style={sx(tu.avatarStyle)}>{tu.initials}</span>
+                      <span style={sx(tu.nameStyle)}>{tu.name}</span>
+                    </button>
+                  ))}
+                </div>
                 <div style={sx('display:flex;gap:10px;margin-top:11px;')}>
                   {c.isFree && (
                     <div style={sx("flex:1;display:flex;align-items:center;justify-content:center;background:#EAF8F2;border-radius:12px;padding:12px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;color:#4FC7A8;")}>🎁 ฟรี · No cost</div>

@@ -86,6 +86,16 @@ GitHub, and deploy to Netlify.
       goals 2-col grid, team grid, AI dock as in-flow bottom bar
 - [x] Desktop Playwright smoke suite (17 checks) + mobile regression rerun
 
+### Phase 6 — Category→teammate assignment + repo e2e suite (added 2026-07-08)
+- [x] "ผู้สอน · Taught by" tutor-chip picker per category in the plan-edit
+      sheet; `ins` carried through `editDraft` → `savePlanEdit`; flows into
+      team roster, presence, calendar legend, slot details
+- [x] `beforeunload` flush for the debounced localStorage save (reloading
+      immediately after a change used to lose it)
+- [x] Permanent e2e suite: `@playwright/test`, `playwright.config.js`
+      (self-hosted on port 4519), `e2e/mobile.spec.js` (15 journey tests) +
+      `e2e/desktop.spec.js` (5), `npm run e2e` — 20/20 green twice in a row
+
 ## Validation
 
 - `npm run build` exits 0; no console errors on load

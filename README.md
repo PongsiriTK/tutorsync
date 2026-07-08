@@ -27,7 +27,9 @@ template galleries).
   confirmation
 - 🛍️ **Explore market** — search & filter community templates, preview, copy
   to your plans, publish your own
-- 🤝 **Team view** — instructors, rates, presence, invite link
+- 🤝 **Team view** — instructors, rates, presence, invite link; **assign any
+  category to a teammate** ("Taught by" picker in plan settings — e.g. hand
+  English to Ms. Lisa and she joins the team, legend and session details)
 - ✨ **AI planning assistant** — local heuristic assistant that answers from
   your real plan data (budget left, lagging categories, session suggestions)
 - 🎨 4 pastel accent themes · Thai-first bilingual UI · localStorage
@@ -43,7 +45,15 @@ npm install
 npm run dev        # dev server
 npm run build      # production build → dist/
 npm run preview    # serve the production build
+npm run e2e        # Playwright journey suite (mobile + desktop projects)
 ```
+
+First e2e run needs the browser once: `npx playwright install chromium`.
+The suite builds and serves the app itself on port 4519 and covers every
+journey: auth (validation/OTP/resend), stepped onboarding, goal creation,
+calendar + booking, slot reactions/comments/reschedule, drag-to-move days,
+goals + edit target, plan settings incl. category→teammate assignment,
+market search/copy/publish, AI assistant, settings, and persistence.
 
 Deploys anywhere static; `netlify.toml` is included for Netlify
 (`netlify deploy --prod`).
@@ -52,6 +62,7 @@ Deploys anywhere static; `netlify.toml` is included for Netlify
 
 ```
 design/           original Claude Design export (reference, not shipped)
+e2e/              Playwright journey tests (mobile.spec.js, desktop.spec.js)
 plans/            implementation plan (markdown)
 src/
   App.jsx         state + logic + computed view values (ported from design)

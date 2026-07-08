@@ -57,13 +57,30 @@ updated on resize):
 ## Test / verify
 
 ```bash
-npm run build                       # must pass clean
-npx vite preview --port 4173       # then run the smoke script
+npm run build     # must pass clean
+npm run e2e       # full journey suite (playwright.config.js)
 ```
 
-A Playwright smoke script covering auth→onboarding→create→book→confirm→
-explore lives in session scratchpad history; re-create from
-`plans/tutorsync-implementation.md` § Validation if needed.
+E2e notes:
+- The suite self-hosts on **port 4519** (`reuseExistingServer: false`) —
+  other dev servers on this machine squat common ports like 4173.
+- Run from the project directory; from elsewhere `npx` resolves a cached
+  Playwright without the local config.
+- Isolated runs: `npx playwright test --project=mobile -g "<name>"` (a bare
+  file argument fights the per-project `testMatch`).
+- Buttons with the infinite `ts-bob` animation are never "stable" — the
+  `tap()` helper force-clicks them. Elements inside sheets are fine with
+  plain clicks once the entry animation settles; prefer plain clicks there
+  (force-clicking mid `ts-sheetUp`/`ts-pop` uses stale coordinates → flake).
+
+## Category → teammate assignment
+
+Each category has an `ins` key into `people` (data.js). The plan-edit sheet
+renders a "ผู้สอน · Taught by" chip row per category (`edCats[].tutors` in
+`App.jsx`); picking one sets `editDraft.cats[i].ins`, saved by
+`savePlanEdit`. Team roster, presence avatars, calendar legend and slot
+details all derive from `categories[].ins`, so assignment propagates without
+further wiring. Category rate stays with the category (not the person).
 
 ## Deploy
 

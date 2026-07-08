@@ -22,6 +22,8 @@ const TARGET_SETS = {
   window:   [[14, '2 สัปดาห์'], [30, '1 เดือน'], [60, '2 เดือน'], [90, '3 เดือน']],
 }
 const TARGET_LABELS = { budget: 'งบประมาณรวม · Total budget', hours: 'เป้าชั่วโมง · Hours target', sessions: 'เป้าจำนวนคาบ · Sessions target', window: 'ระยะเวลา · Deadline in' }
+const SOFT_OF = { '#FF8AA0': '#FFEBF0', '#6AAEF5': '#E7F1FE', '#4FC7A8': '#E4F7F1', '#F4A94C': '#FEF0DC', '#B18AF0': '#F1EBFC', '#7BD9E0': '#E4F9FB' }
+const softOf = (hex) => SOFT_OF[hex] || '#F4EFF7'
 
 export default class App extends React.Component {
   TODAY = 15
@@ -88,6 +90,9 @@ export default class App extends React.Component {
       if (d !== this.state.desktop) this.setState({ desktop: d })
     }
     window.addEventListener('resize', this._onResize)
+    // flush the debounced save so a reload right after a change loses nothing
+    this._onUnload = () => { clearTimeout(this._saveT); this.persist() }
+    window.addEventListener('beforeunload', this._onUnload)
     this._pt = setInterval(() => this.setState((s) => ({ presenceTick: s.presenceTick + 1 })), 4000)
     this._loadT = setTimeout(() => this.setState({ loading: false }), 850)
     this._setupDrag()
@@ -105,6 +110,7 @@ export default class App extends React.Component {
     clearInterval(this._pt); clearTimeout(this._live); clearTimeout(this._loadT); clearTimeout(this._toast); clearTimeout(this._aiT); clearTimeout(this._saveT)
     this._teardownDrag && this._teardownDrag()
     window.removeEventListener('resize', this._onResize)
+    window.removeEventListener('beforeunload', this._onUnload)
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -407,7 +413,7 @@ export default class App extends React.Component {
   openPlanEdit = () => {
     const p = this.activePlan(); if (!p) return
     const cur = p.goalType === 'budget' ? p.budgetTotal : p.goalType === 'hours' ? p.hoursGoal : p.goalType === 'window' ? p.deadlineDays : Object.values(p.categories).reduce((a, c) => a + (c.target || 0), 0)
-    const cats = Object.keys(p.categories).map((k) => { const c = p.categories[k]; return { key: k, en: c.en, th: c.th, rate: c.rate, target: c.target, color: c.color, unit: catUnit(c) } })
+    const cats = Object.keys(p.categories).map((k) => { const c = p.categories[k]; return { key: k, en: c.en, th: c.th, rate: c.rate, target: c.target, color: c.color, unit: catUnit(c), ins: c.ins || 'me' } })
     this.setState({ planEditOpen: true, editDraft: { name: p.name, emoji: p.emoji, theme: p.theme, goalType: p.goalType, target: cur, cats } })
   }
   setEdType(k) { this.setState((s) => ({ editDraft: { ...s.editDraft, goalType: k, target: DEFAULT_TARGET[k] } })) }
@@ -417,19 +423,18 @@ export default class App extends React.Component {
     this.setState((s) => {
       const pal = ['#FF8AA0', '#6AAEF5', '#4FC7A8', '#F4A94C', '#B18AF0', '#7BD9E0']
       const color = pal[s.editDraft.cats.length % pal.length]
-      return { editDraft: { ...s.editDraft, cats: [...s.editDraft.cats, { key: 'C' + Date.now(), en: 'New category', th: 'หมวดใหม่', rate: 300, target: 8, color, unit: 'hr' }] } }
+      return { editDraft: { ...s.editDraft, cats: [...s.editDraft.cats, { key: 'C' + Date.now(), en: 'New category', th: 'หมวดใหม่', rate: 300, target: 8, color, unit: 'hr', ins: 'me' }] } }
     })
   }
   savePlanEdit = () => {
     const ed = this.state.editDraft; if (!ed) return
-    const soft = (hex) => ({ '#FF8AA0': '#FFEBF0', '#6AAEF5': '#E7F1FE', '#4FC7A8': '#E4F7F1', '#F4A94C': '#FEF0DC', '#B18AF0': '#F1EBFC', '#7BD9E0': '#E4F9FB' }[hex] || '#F4EFF7')
     this.setState((s) => {
       const plans = s.plans.map((p) => {
         if (p.id !== s.activePlanId) return p
         const cats = {}; const validKeys = new Set()
         ed.cats.forEach((c) => {
           const key = c.key; validKeys.add(key); const old = p.categories[key] || {}; const unit = c.unit || 'hr'
-          cats[key] = { th: c.th || old.th || c.en, en: c.en || 'Category', short: old.short || c.en.slice(0, 3).toUpperCase(), color: c.color, soft: soft(c.color), ins: old.ins || 'me', rate: unit === 'free' ? 0 : c.rate, target: c.target, unit }
+          cats[key] = { th: c.th || old.th || c.en, en: c.en || 'Category', short: old.short || c.en.slice(0, 3).toUpperCase(), color: c.color, soft: softOf(c.color), ins: c.ins || old.ins || 'me', rate: unit === 'free' ? 0 : c.rate, target: c.target, unit }
         })
         const firstKey = ed.cats[0].key
         const sessions = p.sessions.map((x) => validKeys.has(x.subj) ? x : { ...x, subj: firstKey })
@@ -882,6 +887,19 @@ export default class App extends React.Component {
         return { key: u.k, label: u.label, onTap: () => this.setCat(i, 'unit', u.k), style: `flex:1;border:none;border-radius:10px;padding:7px 4px;cursor:pointer;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;${active ? `background:${c.color};color:#fff;` : 'background:#fff;color:#A99BB5;'}` }
       }),
       colors: catPalette.map((col) => ({ key: col, onTap: () => this.setCat(i, 'color', col), style: `width:22px;height:22px;border-radius:8px;background:${col};border:2.5px solid ${c.color === col ? '#4A3F55' : '#fff'};cursor:pointer;flex:none;box-shadow:0 2px 6px rgba(180,120,150,.15);` })),
+      // assign this category to a team member — flows into team list, legend, slot details
+      insName: (people[c.ins] || people.me).en,
+      tutors: Object.keys(people).map((pk) => {
+        const pp = people[pk]; const active = (c.ins || 'me') === pk
+        const name = pk === 'me' && st.userName ? st.userName : pp.en
+        return {
+          key: pk, name, initials: pk === 'me' && st.userName ? st.userName.charAt(0) : pp.initials,
+          onTap: () => this.setCat(i, 'ins', pk),
+          style: `flex:none;display:flex;align-items:center;gap:6px;border:2px solid ${active ? c.color : '#EEE6F3'};background:${active ? softOf(c.color) : '#fff'};border-radius:13px;padding:5px 10px 5px 5px;cursor:pointer;transition:all .15s;`,
+          avatarStyle: `width:24px;height:24px;border-radius:50%;background:${pp.color};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11px;flex:none;`,
+          nameStyle: `font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;color:${active ? '#4A3F55' : '#A99BB5'};white-space:nowrap;`,
+        }
+      }),
     }))
 
     // ---- onboarding (stepped) ----
