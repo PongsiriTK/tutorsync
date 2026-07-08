@@ -1,6 +1,35 @@
 # TutorSync — agent notes
 
-Static React SPA (Vite, React 18, no backend). Thai/English app demo with two
+React SPA (Vite, React 18) with an optional ElysiaJS backend (`server/`).
+
+## Guest mode vs cloud mode (important)
+
+The app runs in one of two modes, decided at startup by `App.initCloud()`:
+- **Guest mode** (`this.cloud === false`): no backend. State seeds from and
+  persists to localStorage. This is the default and what the public demo used
+  before the backend, and what the mobile/desktop e2e suites exercise. Its code
+  paths must stay behavior-identical — don't regress them.
+- **Cloud mode** (`this.cloud === true`): entered only when `VITE_API_URL` is
+  set AND `probe()` (GET /health) succeeds. Real OTP+JWT auth, `/state` load,
+  debounced per-plan `PUT /plans/:id` sync (`syncCloud`, diffing against
+  `_synced`), real invite links (`doInvite` → `/plans/:id/invite`, consumed by
+  `consumeInviteFromUrl` on `?invite=` load), 20s polling (`refreshCloud`).
+  If the backend is unreachable, `initCloud` calls `initGuest()` → graceful
+  fallback, so the site never hard-breaks.
+
+Every mutation (toggleReaction, addComment, saveSession, saveEditTarget,
+savePlanEdit, move…) just mutates `state.plans`; `componentDidUpdate` →
+`persist()` routes to localStorage (guest) or `syncCloud()` (cloud). Only the
+create/delete/copy/publish/like/invite/auth methods have explicit cloud
+branches, because they create/destroy server resources or need a server id.
+`src/api.js` is the only place that talks HTTP; `stripMeta()` drops `_role`/
+`_shared`/`_rev`/etc. before sending a plan doc.
+
+Backend + deployment: `server/README.md`, `DEPLOY.md`. Backend runs on
+jarvis-agent under launchd, public via a cloudflared quick-tunnel (URL in
+`netlify.toml` → `VITE_API_URL`; ephemeral — see DEPLOY.md).
+
+## Original single-mode notes Thai/English app demo with two
 layouts chosen at runtime by `state.desktop` (`window.innerWidth >= 1024`,
 updated on resize):
 

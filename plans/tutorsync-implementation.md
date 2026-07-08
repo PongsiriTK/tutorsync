@@ -96,6 +96,26 @@ GitHub, and deploy to Netlify.
       (self-hosted on port 4519), `e2e/mobile.spec.js` (15 journey tests) +
       `e2e/desktop.spec.js` (5), `npm run e2e` — 20/20 green twice in a row
 
+### Phase 7 — Cloud backend + real accounts/sync/invites (added 2026-07-08)
+Addresses the honest-critique gaps (accounts, cross-device persistence, real
+shared collaboration was previously simulated).
+- [x] `server/` ElysiaJS + Bun + `bun:sqlite`: OTP+JWT auth, plans as server
+      resources with membership, real invite links (accept → shared plan),
+      market publish/copy, `/health`. 8 API tests incl. two-account
+      invite→shared-plan collaboration.
+- [x] Frontend cloud mode (`src/api.js`, `App.initCloud/loadCloudState/
+      syncCloud/consumeInviteFromUrl`) with startup health-probe and automatic
+      guest fallback; server-tracked `onboarded` flag; 20s poll for collaborators.
+- [x] Deploy on jarvis-agent: Bun installed, API under launchd (`KeepAlive`),
+      cloudflared quick-tunnel under launchd for public HTTPS. `DEPLOY.md`.
+- [x] `e2e/cloud.spec.js` + `e2e/run-cloud.sh`: real-account reload persistence
+      and two-account invite→shared-plan, run against the live jarvis backend —
+      2/2 green. Guest suite still 20/20 (cloud specs skip without API).
+- [x] Netlify redeployed in cloud mode (`netlify.toml` VITE_API_URL); verified a
+      real signup on the public site creates an account on jarvis.
+- [ ] Still outstanding (next): reminders/notifications, tutor-side confirm,
+      real email OTP delivery, live sockets instead of polling.
+
 ## Validation
 
 - `npm run build` exits 0; no console errors on load

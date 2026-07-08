@@ -8,7 +8,9 @@ deadline or session target — plus a community template market and a built-in
 planning assistant.
 
 Built from a [Claude Design](https://claude.ai/design) project
-(`TutorSync.dc.html`, kept in `design/`) and implemented as a static React SPA.
+(`TutorSync.dc.html`, kept in `design/`) and implemented as a static React SPA
+with an optional **ElysiaJS + SQLite backend** (`server/`) for real accounts,
+cross-device sync, and genuinely shared plans.
 User journeys were refined against real-app patterns researched on
 [Mobbin](https://mobbin.com) (Liven/ABY onboarding, Peloton booking
 confirmation, Airbnb "up next", adidas/Atoms momentum streaks, Airtable/Craft
@@ -32,8 +34,13 @@ template galleries).
   English to Ms. Lisa and she joins the team, legend and session details)
 - ✨ **AI planning assistant** — local heuristic assistant that answers from
   your real plan data (budget left, lagging categories, session suggestions)
+- ☁️ **Cloud mode** (optional backend) — real passwordless accounts (OTP+JWT),
+  cross-device sync, and **real invite links**: share a plan and another
+  account joins the *same* plan, seeing your sessions and edits. Falls back to
+  local **guest mode** automatically when no backend is reachable, so the demo
+  always works.
 - 🎨 4 pastel accent themes · Thai-first bilingual UI · localStorage
-  persistence
+  persistence (guest) / server persistence (cloud)
 - 🖥️ **Responsive desktop viewport** (≥1024px) — sidebar navigation,
   multi-column dashboards, calendar with a legend rail, and bottom sheets
   that become centered modals; narrower windows get the mobile phone frame
@@ -50,10 +57,30 @@ npm run e2e        # Playwright journey suite (mobile + desktop projects)
 
 First e2e run needs the browser once: `npx playwright install chromium`.
 The suite builds and serves the app itself on port 4519 and covers every
-journey: auth (validation/OTP/resend), stepped onboarding, goal creation,
-calendar + booking, slot reactions/comments/reschedule, drag-to-move days,
-goals + edit target, plan settings incl. category→teammate assignment,
-market search/copy/publish, AI assistant, settings, and persistence.
+guest-mode journey: auth (validation/OTP/resend), stepped onboarding, goal
+creation, calendar + booking, slot reactions/comments/reschedule,
+drag-to-move days, goals + edit target, plan settings incl.
+category→teammate assignment, market search/copy/publish, AI assistant,
+settings, and persistence.
+
+**Cloud-mode e2e** (real backend, two accounts collaborating):
+
+```bash
+bash e2e/run-cloud.sh   # boots a local API, builds cloud frontend, runs cloud specs
+```
+
+## Cloud backend
+
+The `server/` directory is an ElysiaJS + Bun + SQLite API (see
+`server/README.md`). To run the app in cloud mode locally:
+
+```bash
+cd server && bun install && bun start          # API on :8791
+# in another shell, from repo root:
+VITE_API_URL=http://localhost:8791 npm run dev
+```
+
+Deployment (Netlify + jarvis-agent) is documented in `DEPLOY.md`.
 
 Deploys anywhere static; `netlify.toml` is included for Netlify
 (`netlify deploy --prod`).
@@ -62,15 +89,21 @@ Deploys anywhere static; `netlify.toml` is included for Netlify
 
 ```
 design/           original Claude Design export (reference, not shipped)
-e2e/              Playwright journey tests (mobile.spec.js, desktop.spec.js)
+server/           ElysiaJS + SQLite backend (cloud mode)
+e2e/              Playwright journey tests (mobile, desktop, cloud specs)
 plans/            implementation plan (markdown)
+DEPLOY.md         Netlify + jarvis-agent deployment guide
 src/
   App.jsx         state + logic + computed view values (ported from design)
+  api.js          cloud API client + guest/cloud mode switch
   data.js         themes, people, seed plans, seed market
   ai.js           local planning-assistant replies
   util.js         css-string → React style-object helper
   components/     Chrome (frame/header/nav), Auth, Onboarding, Home, Tabs, Sheets
 ```
 
-Everything is client-side demo data — no backend. Auth, presence and the
-"live" reaction are simulated, matching the original design's behavior.
+**Guest mode** is fully client-side (localStorage); presence and the "live"
+reaction are simulated, matching the original design. **Cloud mode** (when a
+reachable `VITE_API_URL` is set) swaps in real accounts, server persistence,
+and real shared-plan invites. The AI assistant is a local heuristic in both
+modes (no external LLM).

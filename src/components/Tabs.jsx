@@ -217,6 +217,12 @@ export function TeamTab({ v }) {
         <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;")}>แชร์แพลนนี้ 🤝</div>
         <div style={sx('font-size:13px;font-weight:700;opacity:.92;margin-top:2px;')}>Invite people to view &amp; react in real time</div>
         <button onClick={v.invite} style={sx(`margin-top:14px;width:100%;border:none;border-radius:16px;background:rgba(255,255,255,.95);color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:13px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.1);`)}>🔗 คัดลอกลิงก์เชิญ · Copy invite link</button>
+        {v.inviteUrl && (
+          <div style={sx('margin-top:10px;background:rgba(255,255,255,.22);border-radius:12px;padding:9px 12px;')}>
+            <div style={sx('font-size:10px;font-weight:800;opacity:.85;margin-bottom:3px;')}>ลิงก์ที่แชร์ได้ · Share this link</div>
+            <div style={sx('font-size:11px;font-weight:700;color:#fff;word-break:break-all;line-height:1.35;opacity:.95;')}>{v.inviteUrl}</div>
+          </div>
+        )}
       </div>
       {v.members.map((m, i) => (
         <div key={i} style={sx('background:#fff;border-radius:22px;padding:14px 16px;box-shadow:0 8px 22px rgba(180,120,150,.12);display:flex;align-items:center;gap:13px;animation:ts-fadeup .5s ease both;')}>

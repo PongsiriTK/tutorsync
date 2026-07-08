@@ -1,0 +1,139 @@
+import { test, expect, beforeAll, afterAll } from 'bun:test'
+import { rmSync } from 'node:fs'
+
+// fresh throwaway db per run
+process.env.TS_DB = './data/test-' + Date.now() + '.sqlite'
+process.env.TS_JWT_SECRET = 'test-secret'
+
+const { app } = await import('../src/index.js')
+
+let base
+beforeAll(async () => {
+  await app.modules
+  app.listen(0) // ephemeral port — compiles the router and serves over real HTTP
+  for (let i = 0; i < 100 && !app.server; i++) await new Promise((r) => setTimeout(r, 10))
+  base = `http://localhost:${app.server.port}`
+})
+afterAll(() => app.stop())
+
+const call = (path, opts = {}) => fetch(base + path, {
+  ...opts,
+  headers: { 'content-type': 'application/json', ...(opts.headers || {}) },
+  body: opts.body ? JSON.stringify(opts.body) : undefined,
+})
+const json = async (res) => [res.status, await res.json()]
+
+async function signIn(email) {
+  const [, req] = await json(await call('/auth/request', { method: 'POST', body: { email } }))
+  const [, ver] = await json(await call('/auth/verify', { method: 'POST', body: { email, code: req.demoCode } }))
+  return ver.token
+}
+const authed = (token) => ({ Authorization: 'Bearer ' + token })
+
+test('health', async () => {
+  const [status, body] = await json(await call('/health'))
+  expect(status).toBe(200)
+  expect(body.ok).toBe(true)
+})
+
+test('auth: invalid email rejected', async () => {
+  const [status, body] = await json(await call('/auth/request', { method: 'POST', body: { email: 'nope' } }))
+  expect(status).toBe(400)
+  expect(body.error).toBe('invalid_email')
+})
+
+test('auth: wrong code rejected, correct code returns token + seeds account', async () => {
+  const email = 'a@test.dev'
+  const [, req] = await json(await call('/auth/request', { method: 'POST', body: { email } }))
+  expect(req.demoCode).toMatch(/^\d{6}$/)
+
+  const [ws] = await json(await call('/auth/verify', { method: 'POST', body: { email, code: '000000' === req.demoCode ? '111111' : '000000' } }))
+  expect(ws).toBe(400)
+
+  const [status, ok] = await json(await call('/auth/verify', { method: 'POST', body: { email, code: req.demoCode } }))
+  expect(status).toBe(200)
+  expect(ok.token).toBeTruthy()
+
+  const [, state] = await json(await call('/state', { headers: authed(ok.token) }))
+  expect(state.plans.length).toBe(3) // seeded
+  expect(state.market.length).toBeGreaterThanOrEqual(4)
+  expect(state.plans.every((p) => p._role === 'owner')).toBe(true)
+})
+
+test('unauthenticated state is 401', async () => {
+  const [status] = await json(await call('/state'))
+  expect(status).toBe(401)
+})
+
+test('plan create / save / sync round-trips the doc', async () => {
+  const tok = await signIn('b@test.dev')
+  const [, created] = await json(await call('/plans', { method: 'POST', headers: authed(tok), body: { plan: { name: 'My Goal', goalType: 'sessions', categories: {}, sessions: [] } } }))
+  const id = created.plan.id
+  expect(id).toMatch(/^p_/)
+
+  const updated = { ...created.plan, sessions: [{ id: 1, day: 5, subj: 'X', hours: 2, cost: 500, reactions: {}, comments: [] }] }
+  const [status, saved] = await json(await call('/plans/' + id, { method: 'PUT', headers: authed(tok), body: { plan: updated } }))
+  expect(status).toBe(200)
+  expect(saved.rev).toBe(2)
+
+  const [, state] = await json(await call('/state', { headers: authed(tok) }))
+  const p = state.plans.find((x) => x.id === id)
+  expect(p.sessions.length).toBe(1)
+})
+
+test('real invite: second account joins and sees the same shared plan', async () => {
+  const owner = await signIn('owner@test.dev')
+  const [, st] = await json(await call('/state', { headers: authed(owner) }))
+  const planIdToShare = st.plans[0].id
+
+  // owner books a session then invites
+  const doc = { ...st.plans[0], sessions: [...st.plans[0].sessions, { id: 999, day: 12, subj: Object.keys(st.plans[0].categories)[0], hours: 2, cost: 540, reactions: {}, comments: [] }] }
+  await call('/plans/' + planIdToShare, { method: 'PUT', headers: authed(owner), body: { plan: doc } })
+  const [, inv] = await json(await call('/plans/' + planIdToShare + '/invite', { method: 'POST', headers: authed(owner) }))
+  expect(inv.token).toBeTruthy()
+
+  // invitee accepts
+  const guest = await signIn('guest@test.dev')
+  const [status, acc] = await json(await call('/invites/' + inv.token + '/accept', { method: 'POST', headers: authed(guest) }))
+  expect(status).toBe(200)
+  expect(acc.plan.id).toBe(planIdToShare)
+  expect(acc.plan._shared).toBe(true)
+
+  // guest's /state now includes the shared plan WITH the owner's booked session
+  const [, gs] = await json(await call('/state', { headers: authed(guest) }))
+  const shared = gs.plans.find((p) => p.id === planIdToShare)
+  expect(shared).toBeTruthy()
+  expect(shared._shared).toBe(true)
+  expect(shared.sessions.some((s) => s.id === 999)).toBe(true)
+
+  // guest edits the shared plan → owner sees it (real collaboration)
+  const gdoc = { ...shared, sessions: shared.sessions.map((s) => s.id === 999 ? { ...s, reactions: { '🔥': 1 } } : s) }
+  await call('/plans/' + planIdToShare, { method: 'PUT', headers: authed(guest), body: { plan: gdoc } })
+  const [, os] = await json(await call('/state', { headers: authed(owner) }))
+  const ownerView = os.plans.find((p) => p.id === planIdToShare)
+  expect(ownerView.sessions.find((s) => s.id === 999).reactions['🔥']).toBe(1)
+})
+
+test('non-member cannot save or invite a plan', async () => {
+  const a = await signIn('carol@test.dev')
+  const [, sa] = await json(await call('/state', { headers: authed(a) }))
+  const pid = sa.plans[0].id
+  const b = await signIn('dave@test.dev')
+  const [s1] = await json(await call('/plans/' + pid, { method: 'PUT', headers: authed(b), body: { plan: sa.plans[0] } }))
+  expect(s1).toBe(403)
+  const [s2] = await json(await call('/plans/' + pid + '/invite', { method: 'POST', headers: authed(b) }))
+  expect(s2).toBe(403)
+})
+
+test('market copy adds an owned plan and bumps uses', async () => {
+  const tok = await signIn('erin@test.dev')
+  const [, m] = await json(await call('/market', { headers: authed(tok) }))
+  const item = m.market[m.market.length - 1]
+  const [status, res] = await json(await call('/market/' + item.id + '/copy', { method: 'POST', headers: authed(tok) }))
+  expect(status).toBe(200)
+  expect(res.plan._role).toBe('owner')
+  const [, state] = await json(await call('/state', { headers: authed(tok) }))
+  expect(state.plans.some((p) => p.name === item.name)).toBe(true)
+})
+
+process.on('exit', () => { try { rmSync(process.env.TS_DB) } catch {} })

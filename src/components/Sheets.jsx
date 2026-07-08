@@ -581,7 +581,7 @@ export function SettingsSheet({ v }) {
             ))}
           </div>
           <button onClick={v.replayOnboarding} style={sx("margin-top:16px;width:100%;border:none;border-radius:18px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:14px;cursor:pointer;")}>ดูวิธีใช้อีกครั้ง · Replay intro</button>
-          <button onClick={v.resetDemo} style={sx("margin-top:10px;width:100%;border:none;border-radius:18px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:14px;cursor:pointer;")}>🧹 รีเซ็ตข้อมูลเดโม · Reset demo data</button>
+          <button onClick={v.resetDemo} style={sx("margin-top:10px;width:100%;border:none;border-radius:18px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:14px;cursor:pointer;")}>{v.resetLabel || '🧹 รีเซ็ตข้อมูลเดโม · Reset demo data'}</button>
           <button onClick={v.signOut} style={sx("margin-top:10px;width:100%;border:2px solid #F6D5DF;border-radius:18px;background:#fff;color:#E06B85;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:13px;cursor:pointer;")}>🚪 ออกจากระบบ · Sign out</button>
           <div style={sx('text-align:center;font-size:11px;font-weight:700;color:#C6B6D0;margin-top:12px;')}>{v.authEmail}</div>
         </div>

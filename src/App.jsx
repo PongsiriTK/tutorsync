@@ -2,7 +2,10 @@ import React from 'react'
 import { themes, people, monthTH, monthEN, dowTH, dowFullTH, reactionEmojis, goalTypeMeta, seedPlans, seedMarket, catUnit, catCost } from './data.js'
 import { assistantReply } from './ai.js'
 import { fmt } from './util.js'
+import { api, hasApi, probe, getToken, setToken } from './api.js'
 import { AppShell } from './components/Chrome.jsx'
+
+const stripMeta = (p) => { const o = { ...p }; delete o._role; delete o._shared; delete o._rev; delete o._owner; delete o._updatedAt; return o }
 
 const STORE_KEY = 'ts_data_v1'
 const SESSION_KEY = 'ts_session'
@@ -60,22 +63,42 @@ export default class App extends React.Component {
     newGoal: { name: '', type: 'budget', target: 20000, theme: 'coral', emoji: '📚', template: 'study' },
     presenceTick: 0,
     desktop: typeof window !== 'undefined' && window.innerWidth >= 1024,
+    inviteUrl: '',
   }
+
+  cloud = false          // true once a reachable backend is confirmed
+  _synced = new Map()    // plan id → last-synced JSON, so we only PUT what changed
 
   // ---------- lifecycle ----------
   componentDidMount() {
-    let sess = null
-    try { sess = localStorage.getItem(SESSION_KEY) } catch (e) { /* private mode */ }
+    const now = new Date()
+    this.TODAY = now.getDate()
+    this._onResize = () => {
+      const d = window.innerWidth >= 1024
+      if (d !== this.state.desktop) this.setState({ desktop: d })
+    }
+    window.addEventListener('resize', this._onResize)
+    // flush the debounced save so a reload right after a change loses nothing
+    this._onUnload = () => { clearTimeout(this._saveT); if (!this.cloud) this.persist() }
+    window.addEventListener('beforeunload', this._onUnload)
+    this._pt = setInterval(() => this.setState((s) => ({ presenceTick: s.presenceTick + 1 })), 4000)
+    this._setupDrag()
+
+    // Cloud mode when a backend is configured AND reachable; else guest mode.
+    if (hasApi) this.initCloud()
+    else this.initGuest()
+  }
+
+  initGuest() {
     const now = new Date()
     const yr = now.getFullYear(), mo = now.getMonth(), td = now.getDate()
-    this.TODAY = td
-
+    let sess = null
+    try { sess = localStorage.getItem(SESSION_KEY) } catch (e) { /* private mode */ }
     let saved = null
     try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') } catch (e) { saved = null }
     const fresh = !saved || saved.seedY !== yr || saved.seedM !== mo
     const plans = fresh ? seedPlans(yr, mo, td) : saved.plans
     const market = fresh ? seedMarket() : saved.market
-
     this.setState({
       plans, market,
       theme: (saved && saved.theme) || 'coral',
@@ -85,17 +108,8 @@ export default class App extends React.Component {
       authed: !!sess, authEmail: sess || '',
       onboarding: !sess, onbStep: 0,
     })
-    this._onResize = () => {
-      const d = window.innerWidth >= 1024
-      if (d !== this.state.desktop) this.setState({ desktop: d })
-    }
-    window.addEventListener('resize', this._onResize)
-    // flush the debounced save so a reload right after a change loses nothing
-    this._onUnload = () => { clearTimeout(this._saveT); this.persist() }
-    window.addEventListener('beforeunload', this._onUnload)
-    this._pt = setInterval(() => this.setState((s) => ({ presenceTick: s.presenceTick + 1 })), 4000)
     this._loadT = setTimeout(() => this.setState({ loading: false }), 850)
-    this._setupDrag()
+    // simulated live reaction (demo flourish) — guest mode only
     this._live = setTimeout(() => {
       this.setState((s) => {
         if (!s.plans) return {}
@@ -106,8 +120,81 @@ export default class App extends React.Component {
     }, 6500)
   }
 
+  async initCloud() {
+    const up = await probe()
+    if (!up) { this.initGuest(); return }   // backend down → graceful guest fallback
+    this.cloud = true
+    const now = new Date()
+    const td = now.getDate()
+    this.setState({ addDate: td, selDay: td, year: now.getFullYear(), month: now.getMonth() })
+    const token = getToken()
+    if (token) {
+      try { await this.loadCloudState(); return } catch (e) { setToken('') /* stale token */ }
+    }
+    // not signed in → real auth overlay, empty until verified
+    this.setState({ plans: [], market: [], authed: false, loading: false, onboarding: false })
+  }
+
+  async loadCloudState() {
+    const { user, plans, market } = await api.state()
+    this._synced = new Map(plans.map((p) => [p.id, JSON.stringify(stripMeta(p))]))
+    this.setState({
+      plans, market,
+      userName: user?.name || '',
+      theme: user?.theme || 'coral',
+      authed: true, loading: false,
+      authEmail: user?.email || this.state.authEmail,
+      activePlanId: plans[0] ? plans[0].id : null,
+      onboarding: !user?.onboarded,   // server-tracked: show onboarding once
+    })
+    await this.consumeInviteFromUrl()
+    // light polling so a collaborator's edits show up (honest: polling, not sockets)
+    clearInterval(this._poll)
+    this._poll = setInterval(() => this.refreshCloud(), 20000)
+  }
+
+  async refreshCloud() {
+    if (!this.cloud || !this.state.authed || document.hidden) return
+    try {
+      const { plans } = await api.state()
+      this.setState((s) => {
+        // don't stomp a plan the user is actively editing this tick
+        const localById = new Map((s.plans || []).map((p) => [p.id, p]))
+        const merged = plans.map((p) => {
+          const local = localById.get(p.id)
+          const localJson = local ? JSON.stringify(stripMeta(local)) : null
+          const syncedJson = this._synced.get(p.id)
+          // if local has unsynced edits, keep local; else take server
+          if (local && localJson !== syncedJson) return local
+          this._synced.set(p.id, JSON.stringify(stripMeta(p)))
+          return p
+        })
+        return { plans: merged }
+      })
+    } catch (e) { /* transient */ }
+  }
+
+  async consumeInviteFromUrl() {
+    let token = null
+    try { token = new URLSearchParams(location.search).get('invite') } catch (e) { /* noop */ }
+    if (!token) return
+    try {
+      const { plan } = await api.acceptInvite(token)
+      this._synced.set(plan.id, JSON.stringify(stripMeta(plan)))
+      this.setState((s) => {
+        const others = (s.plans || []).filter((p) => p.id !== plan.id)
+        return { plans: [...others, plan], screen: 'plan', tab: 'cal', activePlanId: plan.id, theme: plan.theme, homeTab: 'mine' }
+      })
+      this.showToast('🤝', 'เข้าร่วมแพลนที่แชร์แล้ว · Joined shared plan!')
+    } catch (e) {
+      this.showToast('😕', e.status === 410 ? 'ลิงก์หมดอายุ · Invite expired' : 'ลิงก์เชิญไม่ถูกต้อง · Invalid invite')
+    } finally {
+      try { const u = new URL(location.href); u.searchParams.delete('invite'); history.replaceState({}, '', u) } catch (e) { /* noop */ }
+    }
+  }
+
   componentWillUnmount() {
-    clearInterval(this._pt); clearTimeout(this._live); clearTimeout(this._loadT); clearTimeout(this._toast); clearTimeout(this._aiT); clearTimeout(this._saveT)
+    clearInterval(this._pt); clearInterval(this._poll); clearTimeout(this._live); clearTimeout(this._loadT); clearTimeout(this._toast); clearTimeout(this._aiT); clearTimeout(this._saveT)
     this._teardownDrag && this._teardownDrag()
     window.removeEventListener('resize', this._onResize)
     window.removeEventListener('beforeunload', this._onUnload)
@@ -128,9 +215,15 @@ export default class App extends React.Component {
       clearTimeout(this._saveT)
       this._saveT = setTimeout(() => this.persist(), 300)
     }
+    // cloud: sync profile (name/theme) changes to the account
+    if (this.cloud && this.state.authed && (prevState.theme !== st.theme || prevState.userName !== st.userName)) {
+      clearTimeout(this._profT)
+      this._profT = setTimeout(() => { api.saveProfile({ name: st.userName, theme: st.theme }).catch(() => {}) }, 400)
+    }
   }
 
   persist() {
+    if (this.cloud) { this.syncCloud(); return }
     const { plans, market, theme, userName, settingsFlags, year, month } = this.state
     if (!plans) return
     try {
@@ -138,7 +231,24 @@ export default class App extends React.Component {
     } catch (e) { /* storage full/blocked — demo continues in memory */ }
   }
 
-  resetDemo = () => {
+  // Push any plan whose doc changed since last sync to the server (last-write-wins).
+  async syncCloud() {
+    const plans = this.state.plans || []
+    for (const p of plans) {
+      const json = JSON.stringify(stripMeta(p))
+      if (this._synced.get(p.id) === json) continue
+      this._synced.set(p.id, json)
+      try { await api.savePlan(p.id, stripMeta(p)) } catch (e) { this._synced.delete(p.id) /* retry next change */ }
+    }
+  }
+
+  resetDemo = async () => {
+    if (this.cloud) {
+      this.setState({ settingsOpen: false, screen: 'home', homeTab: 'mine' })
+      try { await this.loadCloudState() } catch (e) { /* noop */ }
+      this.showToast('🔄', 'ซิงก์ข้อมูลแล้ว · Synced from cloud')
+      return
+    }
     try { localStorage.removeItem(STORE_KEY) } catch (e) { /* noop */ }
     const now = new Date()
     this.setState({
@@ -258,9 +368,16 @@ export default class App extends React.Component {
   }
 
   // ---------- auth ----------
-  sendCode = () => {
+  sendCode = async () => {
     const email = (this.state.authEmail || '').trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.setState({ authError: 'กรุณาใส่อีเมลให้ถูกต้อง · Enter a valid email' }); return }
+    if (this.cloud) {
+      try {
+        const r = await api.requestCode(email)
+        this.setState({ authStep: 'otp', authCode: r.demoCode || '', authOtp: '', authError: '' })
+      } catch (e) { this.setState({ authError: 'ส่งโค้ดไม่สำเร็จ ลองใหม่ · Could not send code' }) }
+      return
+    }
     const code = String(Math.floor(100000 + Math.random() * 900000))
     this.setState({ authStep: 'otp', authCode: code, authOtp: '', authError: '' })
   }
@@ -272,17 +389,38 @@ export default class App extends React.Component {
     if (v.length === 6) setTimeout(() => this.verifyOtp(), 120)
   }
   otpKey = (e) => { if (e.key === 'Enter') this.verifyOtp() }
-  verifyOtp = () => {
+  verifyOtp = async () => {
+    if (this.cloud) {
+      try {
+        const { token } = await api.verify((this.state.authEmail || '').trim(), (this.state.authOtp || '').trim())
+        setToken(token)
+        this.setState({ authError: '', authOtp: '' })
+        await this.loadCloudState()
+        this.showToast('🎉', 'เข้าสู่ระบบแล้ว · Signed in!')
+      } catch (e) {
+        const msg = e.status === 429 ? 'พยายามมากเกินไป · Too many tries' : 'โค้ดไม่ถูกต้อง · Incorrect code'
+        this.setState({ authError: msg, authOtp: '' })
+      }
+      return
+    }
     if (this.state.authOtp !== this.state.authCode) { this.setState({ authError: 'โค้ดไม่ถูกต้อง · Incorrect code', authOtp: '' }); return }
     try { localStorage.setItem(SESSION_KEY, this.state.authEmail.trim()) } catch (err) { /* noop */ }
     this.setState({ authed: true, authError: '', authOtp: '' })
     this.showToast('🎉', 'เข้าสู่ระบบแล้ว · Signed in!')
   }
-  resendCode = () => { const code = String(Math.floor(100000 + Math.random() * 900000)); this.setState({ authCode: code, authOtp: '', authError: '' }); this.showToast('💌', 'ส่งโค้ดใหม่แล้ว · Code resent') }
+  resendCode = async () => {
+    if (this.cloud) {
+      try { const r = await api.requestCode((this.state.authEmail || '').trim()); this.setState({ authCode: r.demoCode || '', authOtp: '', authError: '' }) } catch (e) { /* noop */ }
+      this.showToast('💌', 'ส่งโค้ดใหม่แล้ว · Code resent'); return
+    }
+    const code = String(Math.floor(100000 + Math.random() * 900000)); this.setState({ authCode: code, authOtp: '', authError: '' }); this.showToast('💌', 'ส่งโค้ดใหม่แล้ว · Code resent')
+  }
   changeEmail = () => this.setState({ authStep: 'email', authOtp: '', authError: '' })
   signOut = () => {
+    clearInterval(this._poll)
+    if (this.cloud) { setToken(''); this._synced = new Map() }
     try { localStorage.removeItem(SESSION_KEY) } catch (e) { /* noop */ }
-    this.setState({ authed: false, authStep: 'email', authEmail: '', authOtp: '', authCode: '', settingsOpen: false, screen: 'home', tab: 'cal', homeTab: 'mine' })
+    this.setState({ authed: false, authStep: 'email', authEmail: '', authOtp: '', authCode: '', settingsOpen: false, screen: 'home', tab: 'cal', homeTab: 'mine', ...(this.cloud ? { plans: [], market: this.state.market } : {}) })
   }
 
   // ---------- onboarding (stepped — Liven/ABY pattern) ----------
@@ -300,9 +438,10 @@ export default class App extends React.Component {
       next.homeTab = 'mine'
     }
     this.setState(next)
+    if (this.cloud) api.saveProfile({ onboarded: true, ...(name ? { name } : {}) }).catch(() => {})
     if (name) this.showToast('👋', 'ยินดีต้อนรับคุณ' + name + ' · Welcome!')
   }
-  onbSkip = () => this.setState({ onboarding: false, onbStep: 0 })
+  onbSkip = () => { this.setState({ onboarding: false, onbStep: 0 }); if (this.cloud) api.saveProfile({ onboarded: true }).catch(() => {}) }
   replayOnboarding = () => this.setState({ settingsOpen: false, onboarding: true, onbStep: 0 })
 
   // ---------- plans ----------
@@ -351,23 +490,37 @@ export default class App extends React.Component {
   closeBooked = () => this.setState({ booked: null })
   viewBookedDay = () => this.setState((s) => ({ booked: null, dayOpen: true, selDay: s.booked ? s.booked.day : s.selDay, tab: 'cal' }))
 
-  createPlan = () => {
+  buildNewPlan() {
     const ng = this.state.newGoal; const th = themes[ng.theme]
     const catName = { study: { th: 'คาบติว', en: 'Lesson', short: 'LES' }, fitness: { th: 'คาบเทรน', en: 'Training', short: 'PT' }, deadline: { th: 'คาบเตรียมสอบ', en: 'Prep session', short: 'PREP' }, music: { th: 'คาบเรียน', en: 'Practice', short: 'PRC' }, custom: { th: 'คาบ', en: 'Session', short: 'SES' } }[ng.template] || { th: 'คาบ', en: 'Session', short: 'SES' }
     const rate = { study: 300, fitness: 500, deadline: 450, music: 400, custom: 300 }[ng.template] || 300
     const kind = ng.template === 'fitness' ? 'fitness' : 'study'
     const catTarget = ng.type === 'sessions' ? ng.target : 12
     const cats = { MAIN: { th: catName.th, en: catName.en, short: catName.short, color: th.pc, soft: th.soft, ins: 'me', rate, target: catTarget } }
+    return {
+      name: ng.name || 'เป้าหมายใหม่', en: 'New goal', emoji: ng.emoji, theme: ng.theme, goalType: ng.type, kind,
+      budgetTotal: ng.type === 'budget' ? ng.target : 15000, hoursGoal: ng.type === 'hours' ? ng.target : 40,
+      deadlineDays: ng.type === 'window' ? ng.target : 30, elapsedDays: 0, deadlineLabel: 'อีก ' + (ng.type === 'window' ? ng.target : 30) + ' วัน',
+      categories: cats, sessions: [],
+    }
+  }
+  createPlan = async () => {
+    const ng = this.state.newGoal
+    const body = this.buildNewPlan()
+    const resetNg = { name: '', type: 'budget', target: 20000, theme: 'coral', emoji: '📚', template: 'study' }
+    if (this.cloud) {
+      try {
+        const { plan } = await api.createPlan(body)
+        this._synced.set(plan.id, JSON.stringify(stripMeta(plan)))
+        this.setState((s) => ({ plans: [...s.plans, plan], createOpen: false, screen: 'plan', tab: 'cal', activePlanId: plan.id, theme: ng.theme, addSubj: 'MAIN', newGoal: resetNg }))
+        this.showToast('✨', 'สร้างเป้าหมายแล้ว · Goal created!')
+      } catch (e) { this.showToast('😕', 'สร้างไม่สำเร็จ ลองใหม่ · Could not create') }
+      return
+    }
     this.setState((s) => {
-      const nid = Math.max(0, ...s.plans.map((p) => p.id)) + 1
-      const plan = {
-        id: nid, name: ng.name || 'เป้าหมายใหม่', en: 'New goal', emoji: ng.emoji, theme: ng.theme, goalType: ng.type, kind,
-        budgetTotal: ng.type === 'budget' ? ng.target : 15000, hoursGoal: ng.type === 'hours' ? ng.target : 40,
-        deadlineDays: ng.type === 'window' ? ng.target : 30, elapsedDays: 0, deadlineLabel: 'อีก ' + (ng.type === 'window' ? ng.target : 30) + ' วัน',
-        categories: cats, sessions: [],
-      }
-      return { plans: [...s.plans, plan], createOpen: false, screen: 'plan', tab: 'cal', activePlanId: nid, theme: ng.theme, addSubj: 'MAIN',
-        newGoal: { name: '', type: 'budget', target: 20000, theme: 'coral', emoji: '📚', template: 'study' } }
+      const nid = Math.max(0, ...s.plans.map((p) => (typeof p.id === 'number' ? p.id : 0))) + 1
+      const plan = { id: nid, ...body }
+      return { plans: [...s.plans, plan], createOpen: false, screen: 'plan', tab: 'cal', activePlanId: nid, theme: ng.theme, addSubj: 'MAIN', newGoal: resetNg }
     })
     this.showToast('✨', 'สร้างเป้าหมายแล้ว · Goal created!')
   }
@@ -448,19 +601,35 @@ export default class App extends React.Component {
     })
     this.showToast('✨', 'บันทึกการตั้งค่าแล้ว · Plan updated!')
   }
-  deletePlan = () => {
+  deletePlan = async () => {
+    const id = this.state.activePlanId
+    if (this.cloud) { try { await api.deletePlan(id) } catch (e) { /* keep local removal anyway */ } this._synced.delete(id) }
     this.setState((s) => {
-      const plans = s.plans.filter((p) => p.id !== s.activePlanId)
+      const plans = s.plans.filter((p) => p.id !== id)
       return { plans, planEditOpen: false, screen: 'home', homeTab: 'mine', activePlanId: plans[0] ? plans[0].id : null }
     })
     this.showToast('🗑️', 'ลบแพลนแล้ว · Plan deleted')
   }
 
-  likeMarket = () => { this.setState((s) => { const market = s.market.map((m) => m.id === s.selMarket ? { ...m, likes: m.likes + 1 } : m); return { market } }); this.showToast('❤️', 'ถูกใจแล้ว · Liked!') }
-  copyMarket = () => {
+  likeMarket = () => {
+    const id = this.state.selMarket
+    if (this.cloud) api.likeMarket(id).catch(() => {})
+    this.setState((s) => { const market = s.market.map((m) => m.id === id ? { ...m, likes: m.likes + 1 } : m); return { market } })
+    this.showToast('❤️', 'ถูกใจแล้ว · Liked!')
+  }
+  copyMarket = async () => {
     const item = (this.state.market || []).find((x) => x.id === this.state.selMarket); if (!item) return
+    if (this.cloud) {
+      try {
+        const { plan } = await api.copyMarket(item.id)
+        this._synced.set(plan.id, JSON.stringify(stripMeta(plan)))
+        this.setState((s) => ({ plans: [...s.plans, plan], market: s.market.map((m) => m.id === item.id ? { ...m, uses: m.uses + 1 } : m), marketOpen: false, screen: 'plan', tab: 'cal', activePlanId: plan.id, theme: item.theme, homeTab: 'mine', addSubj: Object.keys(plan.categories)[0] }))
+        this.showToast('🎉', 'คัดลอกแล้ว! เริ่มวางแผนได้เลย · Copied to your plans')
+      } catch (e) { this.showToast('😕', 'คัดลอกไม่สำเร็จ · Could not copy') }
+      return
+    }
     this.setState((s) => {
-      const nid = Math.max(0, ...s.plans.map((p) => p.id)) + 1
+      const nid = Math.max(0, ...s.plans.map((p) => (typeof p.id === 'number' ? p.id : 0))) + 1
       const cats = {}; Object.keys(item.categories).forEach((k) => { cats[k] = { ...item.categories[k] } })
       const plan = { id: nid, name: item.name, en: item.en, emoji: item.emoji, theme: item.theme, kind: item.kind, goalType: item.goalType,
         budgetTotal: item.budgetTotal, hoursGoal: item.hoursGoal, deadlineDays: item.deadlineDays, elapsedDays: 0, deadlineLabel: 'อีก ' + item.deadlineDays + ' วัน',
@@ -470,10 +639,18 @@ export default class App extends React.Component {
     })
     this.showToast('🎉', 'คัดลอกแล้ว! เริ่มวางแผนได้เลย · Copied to your plans')
   }
-  doPublish = () => {
+  doPublish = async () => {
     const plan = this.activePlan(); if (!plan) return
+    if (this.cloud) {
+      try {
+        const { item } = await api.publish(stripMeta(plan))
+        this.setState((s) => ({ market: [item, ...s.market], publishOpen: false }))
+        this.showToast('🚀', 'เผยแพร่แล้ว! อยู่ในมาร์เก็ตแล้ว · Published to Explore')
+      } catch (e) { this.showToast('😕', 'เผยแพร่ไม่สำเร็จ · Could not publish') }
+      return
+    }
     this.setState((s) => {
-      const nid = Math.max(200, ...s.market.map((m) => m.id)) + 1
+      const nid = Math.max(200, ...s.market.map((m) => (typeof m.id === 'number' ? m.id : 200))) + 1
       const cats = {}; Object.keys(plan.categories).forEach((k) => { cats[k] = { ...plan.categories[k] } })
       const author = (s.userName || 'พิมพ์ชนก') + ' (You)'
       const item = { id: nid, emoji: plan.emoji, name: plan.name, en: plan.en || 'My goal', theme: plan.theme, kind: plan.kind, goalType: plan.goalType,
@@ -483,6 +660,17 @@ export default class App extends React.Component {
       return { market: [item, ...s.market], publishOpen: false }
     })
     this.showToast('🚀', 'เผยแพร่แล้ว! อยู่ในมาร์เก็ตแล้ว · Published to Explore')
+  }
+  doInvite = async () => {
+    if (!this.cloud) { this.showToast('🔗', 'คัดลอกลิงก์แล้ว · Invite link copied!'); return }
+    const plan = this.activePlan(); if (!plan) return
+    try {
+      const { token } = await api.invite(plan.id)
+      const url = `${location.origin}/?invite=${token}`
+      try { await navigator.clipboard.writeText(url) } catch (e) { /* clipboard blocked */ }
+      this.setState({ inviteUrl: url })
+      this.showToast('🔗', 'คัดลอกลิงก์เชิญแล้ว · Invite link copied!')
+    } catch (e) { this.showToast('😕', 'สร้างลิงก์ไม่สำเร็จ · Could not create link') }
   }
   rescheduleSlot = () => {
     const plan = this.activePlan(); if (!plan) return
@@ -978,7 +1166,7 @@ export default class App extends React.Component {
       decEdTarget: () => this.setState((s) => ({ editDraft: { ...s.editDraft, target: this.bumpTarget(s.editDraft.goalType, s.editDraft.target, -1) } })),
       setEdName: (e) => this.setState((s) => ({ editDraft: { ...s.editDraft, name: e.target.value } })),
       addCat: this.addCat, savePlanEdit: this.savePlanEdit, deletePlan: this.deletePlan,
-      members, invite: () => this.showToast('🔗', 'คัดลอกลิงก์แล้ว · Invite link copied!'),
+      members, invite: this.doInvite, inviteUrl: st.inviteUrl, cloud: this.cloud,
       messages, aiThinking: st.aiThinking, chips,
       chatInput: st.chatInput, setChatInput: (e) => this.setState({ chatInput: e.target.value }), chatKey: (e) => { if (e.key === 'Enter') this.sendChat() }, sendChat: this.sendChat,
       toast: st.toast,
@@ -1037,6 +1225,7 @@ export default class App extends React.Component {
         return { ...r, onTap: () => this.toggleFlag(r.key), toggleStyle: `width:48px;height:28px;border:none;border-radius:16px;background:${on ? t.pc : '#E3D6EC'};cursor:pointer;position:relative;transition:background .2s;flex:none;`, knobStyle: `position:absolute;top:3px;left:${on ? '23px' : '3px'};width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 5px rgba(0,0,0,.2);` }
       }),
       replayOnboarding: this.replayOnboarding, resetDemo: this.resetDemo,
+      resetLabel: this.cloud ? '🔄 ซิงก์ใหม่จากคลาวด์ · Re-sync from cloud' : '🧹 รีเซ็ตข้อมูลเดโม · Reset demo data',
     }
   }
 

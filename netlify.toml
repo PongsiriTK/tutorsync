@@ -2,6 +2,14 @@
   command = "npm run build"
   publish = "dist"
 
+# Cloud backend (ElysiaJS on jarvis-agent, exposed via cloudflared quick-tunnel).
+# The app health-probes this at startup and silently falls back to local "guest
+# mode" if it's unreachable, so the public demo never hard-breaks. This URL is
+# ephemeral — if the tunnel restarts, update it here (or via `netlify env`) and
+# redeploy. For a permanent URL, use a named Cloudflare tunnel or Tailscale Funnel.
+[build.environment]
+  VITE_API_URL = "https://raise-dept-alerts-newest.trycloudflare.com"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
