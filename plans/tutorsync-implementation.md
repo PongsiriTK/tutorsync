@@ -139,9 +139,19 @@ shared collaboration was previously simulated).
       owner-sees-confirmed. 3/3 cloud + 20/20 guest green. Deployed jarvis +
       Netlify.
 
-- [ ] Still outstanding (next): real email OTP delivery (mailer), live sockets
-      instead of 20s polling, stable public hostname (named CF tunnel /
-      Tailscale Funnel).
+### Phase 10 — Email OTP via Resend (added 2026-07-09)
+- [x] `server/src/mail.js` Resend sender (fetch-based, no SDK); `/auth/request`
+      emails the code when `RESEND_API_KEY` set and omits it from the response,
+      else demo-code fallback (never locks out). `.env.example`, `.env`
+      gitignored + rsync-excluded so deploys don't wipe the key.
+- [x] Client "check your email" OTP UX (`authEmailed`) vs demo-code box.
+- [x] Tests: `mail.test.js` (mailer unit + emailed/demo `/auth/request` paths);
+      20 server tests, 20/20 guest e2e, 3/3 cloud e2e green. Deployed
+      jarvis + Netlify (demo mode until a key is added on jarvis).
+
+- [ ] Still outstanding (next): live sockets instead of 20s polling, stable
+      public hostname (named CF tunnel / Tailscale Funnel). Owner supplies the
+      Resend key on jarvis to flip email on (see DEPLOY.md).
 
 ## Validation
 

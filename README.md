@@ -18,7 +18,8 @@ template galleries).
 
 ## Features
 
-- 🔐 **Passwordless demo auth** — email + 6-digit OTP (demo code shown in-app)
+- 🔐 **Passwordless auth** — email + 6-digit OTP. In cloud mode with a Resend
+  key configured, the code is **emailed**; otherwise it's shown in-app (demo)
 - 👋 **Stepped onboarding** — intro → name capture → pick your first goal
 - 🎯 **Type-adaptive goals** — budget (฿), hours, deadline, or session-count
   targets with adaptive dashboards

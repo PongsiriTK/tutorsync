@@ -33,7 +33,7 @@ export default class App extends React.Component {
   TODAY = 15
 
   state = {
-    authed: false, authStep: 'email', authEmail: '', authOtp: '', authCode: '', authError: '',
+    authed: false, authStep: 'email', authEmail: '', authOtp: '', authCode: '', authError: '', authEmailed: false,
     loading: true,
     screen: 'home', tab: 'cal',
     onboarding: true, onbStep: 0, onbName: '', onbTemplate: null,
@@ -402,12 +402,12 @@ export default class App extends React.Component {
     if (this.cloud) {
       try {
         const r = await api.requestCode(email)
-        this.setState({ authStep: 'otp', authCode: r.demoCode || '', authOtp: '', authError: '' })
+        this.setState({ authStep: 'otp', authCode: r.demoCode || '', authEmailed: !!r.emailed && !r.demoCode, authOtp: '', authError: '' })
       } catch (e) { this.setState({ authError: 'ส่งโค้ดไม่สำเร็จ ลองใหม่ · Could not send code' }) }
       return
     }
     const code = String(Math.floor(100000 + Math.random() * 900000))
-    this.setState({ authStep: 'otp', authCode: code, authOtp: '', authError: '' })
+    this.setState({ authStep: 'otp', authCode: code, authEmailed: false, authOtp: '', authError: '' })
   }
   setAuthEmail = (e) => this.setState({ authEmail: e.target.value, authError: '' })
   emailKey = (e) => { if (e.key === 'Enter') this.sendCode() }
@@ -438,7 +438,7 @@ export default class App extends React.Component {
   }
   resendCode = async () => {
     if (this.cloud) {
-      try { const r = await api.requestCode((this.state.authEmail || '').trim()); this.setState({ authCode: r.demoCode || '', authOtp: '', authError: '' }) } catch (e) { /* noop */ }
+      try { const r = await api.requestCode((this.state.authEmail || '').trim()); this.setState({ authCode: r.demoCode || '', authEmailed: !!r.emailed && !r.demoCode, authOtp: '', authError: '' }) } catch (e) { /* noop */ }
       this.showToast('💌', 'ส่งโค้ดใหม่แล้ว · Code resent'); return
     }
     const code = String(Math.floor(100000 + Math.random() * 900000)); this.setState({ authCode: code, authOtp: '', authError: '' }); this.showToast('💌', 'ส่งโค้ดใหม่แล้ว · Code resent')
@@ -1239,7 +1239,7 @@ export default class App extends React.Component {
       // auth
       showAuth: !st.authed,
       authEmailStep: st.authStep === 'email', authOtpStep: st.authStep === 'otp',
-      authEmail: st.authEmail, authError: st.authError, authCode: st.authCode, authOtp: st.authOtp,
+      authEmail: st.authEmail, authError: st.authError, authCode: st.authCode, authOtp: st.authOtp, authEmailed: st.authEmailed,
       authEmailBorder: st.authError ? '#F6D5DF' : '#EEE6F3',
       maskedEmail: (() => { const e = st.authEmail || ''; const [u, d] = e.split('@'); if (!d) return e; return (u.length <= 2 ? u : u.slice(0, 2) + '•••') + '@' + d })(),
       otpCells: Array.from({ length: 6 }).map((_, i) => {

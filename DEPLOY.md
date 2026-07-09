@@ -24,16 +24,38 @@ Bun is installed at `/Users/jarvis/.bun/bin/bun`; cloudflared at
 `~/Library/LaunchAgents/ai.tutorsync.api.plist` (API, `KeepAlive`) and
 `ai.tutorsync.tunnel.plist` (tunnel).
 
-Deploy an update:
+Deploy an update (note `--exclude .env` — never let the deploy wipe the key):
 
 ```bash
 # from repo root
-rsync -az --delete --exclude node_modules --exclude data --exclude '*.log' \
-  --exclude 'bun.lock*' server/ jarvis-agent:~/tutorsync-server/
+rsync -az --delete --exclude node_modules --exclude data --exclude .env \
+  --exclude '*.log' --exclude 'bun.lock*' server/ jarvis-agent:~/tutorsync-server/
 ssh jarvis-agent 'cd ~/tutorsync-server && ~/.bun/bin/bun install && \
   launchctl kickstart -k gui/$(id -u)/ai.tutorsync.api'
 ssh jarvis-agent 'curl -s localhost:8791/health'
 ```
+
+## Email OTP (Resend)
+
+Codes are emailed when `RESEND_API_KEY` is set; otherwise the server returns the
+code in the response (demo mode) so nothing locks out. Bun auto-loads
+`~/tutorsync-server/.env`. To turn on real email:
+
+```bash
+# on jarvis — paste your key into a gitignored, deploy-safe .env (never in chat)
+ssh jarvis-agent 'cat >> ~/tutorsync-server/.env <<EOF
+RESEND_API_KEY=re_your_key_here
+# to email anyone, verify a domain in Resend and set the sender:
+# TS_MAIL_FROM=TutorSync 🗓️ <noreply@yourdomain.com>
+EOF
+launchctl kickstart -k gui/$(id -u)/ai.tutorsync.api'
+```
+
+Sender caveat: the default `onboarding@resend.dev` only delivers to the Resend
+account owner's own address. To email arbitrary users, verify a domain in
+Resend and set `TS_MAIL_FROM`. After adding the key, redeploy the Netlify
+frontend once (it drops the on-screen "demo code" box automatically since the
+server stops returning the code).
 
 Get the current public tunnel URL:
 
@@ -76,12 +98,12 @@ push services (FCM/Apple/Mozilla) over HTTPS — no extra egress config needed.
 
 ## Not yet real (honest status)
 
-Cloud mode + reminders + the tutor-side confirmation loop close most of the MVP
-gaps (accounts, cross-device persistence, genuinely shared invite-based plans,
-notifications even when closed, and a two-sided book→confirm flow). Still
-outstanding from the critique: **real email OTP delivery** (`TS_HIDE_OTP=1` + a
-mailer — the OTP is currently returned in the response), **live sockets**
-instead of 20s polling for collaboration, and a **stable public hostname**.
-Reminder delivery to a live browser can't be verified in headless CI (headless
-denies the notification permission); the server delivery pipeline is tested
-against real FCM.
+Cloud mode + reminders + the tutor-side confirmation loop + email OTP close most
+of the MVP gaps (accounts, cross-device persistence, genuinely shared
+invite-based plans, notifications even when closed, a two-sided book→confirm
+flow, and emailed sign-in codes when a Resend key is set). Still outstanding
+from the critique: **live sockets** instead of 20s polling for collaboration,
+and a **stable public hostname** (the tunnel URL is ephemeral). Reminder
+delivery to a live browser can't be verified in headless CI (headless denies
+the notification permission); the server delivery pipeline is tested against
+real FCM.

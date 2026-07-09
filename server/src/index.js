@@ -6,6 +6,7 @@ import { token, otpCode, planId, marketId } from './id.js'
 import { seedPlansFor, seedMarket } from './seed.js'
 import { vapidPublicKey, saveSubscription, removeSubscription, sendToUser, startScheduler } from './push.js'
 import { reminderPayload, nextOccurrence } from './reminders.js'
+import { mailConfigured, sendOtpEmail } from './mail.js'
 
 const PORT = Number(process.env.PORT || 8791)
 const JWT_SECRET = process.env.TS_JWT_SECRET || 'tutorsync-dev-secret-change-me'
@@ -67,14 +68,17 @@ export const app = new Elysia()
   .get('/health', () => ({ ok: true, service: 'tutorsync', time: now() }))
 
   // ----- auth: passwordless OTP -----
-  .post('/auth/request', ({ body, set }) => {
+  .post('/auth/request', async ({ body, set }) => {
     const email = String(body.email || '').trim().toLowerCase()
     if (!EMAIL_RE.test(email)) { set.status = 400; return { error: 'invalid_email' } }
     const code = otpCode()
     db.query('DELETE FROM otps WHERE email = ?').run(email)
     db.query('INSERT INTO otps (email, code, expires_at, attempts) VALUES (?, ?, ?, 0)').run(email, code, now() + OTP_TTL)
-    // TODO: send via email provider when TS_HIDE_OTP=1
-    return { sent: true, ...(EXPOSE_OTP ? { demoCode: code } : {}) }
+    // Email the code when a provider is configured; otherwise (or if sending
+    // fails) fall back to returning it so the demo/dev flow never locks out.
+    const emailed = mailConfigured() ? await sendOtpEmail(email, code) : false
+    const expose = EXPOSE_OTP && (!emailed || process.env.TS_EXPOSE_OTP === '1')
+    return { sent: true, emailed, ...(expose ? { demoCode: code } : {}) }
   }, { body: t.Object({ email: t.String() }) })
 
   .post('/auth/verify', async ({ body, jwt, set }) => {

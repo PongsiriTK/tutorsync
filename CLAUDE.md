@@ -25,6 +25,15 @@ branches, because they create/destroy server resources or need a server id.
 `src/api.js` is the only place that talks HTTP; `stripMeta()` drops `_role`/
 `_shared`/`_rev`/etc. before sending a plan doc.
 
+**Email OTP (Resend):** `server/src/mail.js` sends the code via Resend when
+`RESEND_API_KEY` is set (Bun auto-loads `server/.env`, gitignored + rsync
+`--exclude .env` so deploys never wipe it). `/auth/request` returns
+`{emailed, demoCode?}` — `demoCode` only when NOT emailed (or `TS_EXPOSE_OTP=1`),
+so the demo/e2e flow (which reads the on-screen code) keeps working without a
+key. Client keys off `r.emailed && !r.demoCode` → `state.authEmailed` → Auth.jsx
+shows "check your email" vs the demo-code box. `TS_MAIL_FAKE=1` pretends to send
+(tests) — never set it on the e2e/run-cloud backend or the demo code vanishes.
+
 **Tutor-side confirmation loop (cloud):** sessions carry `status`
 (pending/confirmed/declined/reschedule + `proposedDay`); `sessionStatus()`
 treats missing status as confirmed (back-compat with seeds). `saveSession`

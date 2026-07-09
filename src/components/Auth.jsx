@@ -34,7 +34,9 @@ export function AuthOverlay({ v }) {
           </div>
           {v.authError && <div style={sx('font-size:12px;font-weight:800;color:#E06B85;margin-top:12px;')}>{v.authError}</div>}
 
-          <div style={sx(`margin-top:16px;background:${v.g.pcSoft};border-radius:14px;padding:10px 14px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:${v.g.pc};`)}>🔑 โค้ดทดสอบ · demo code: <span style={sx('font-weight:800;letter-spacing:1px;')}>{v.authCode}</span></div>
+          {v.authEmailed
+            ? <div style={sx(`margin-top:16px;background:${v.g.pcSoft};border-radius:14px;padding:11px 14px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:${v.g.pc};line-height:1.5;text-align:center;`)}>📧 ส่งโค้ดไปที่อีเมลของคุณแล้ว<br />Check your email for the 6-digit code</div>
+            : <div style={sx(`margin-top:16px;background:${v.g.pcSoft};border-radius:14px;padding:10px 14px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:${v.g.pc};`)}>🔑 โค้ดทดสอบ · demo code: <span style={sx('font-weight:800;letter-spacing:1px;')}>{v.authCode}</span></div>}
 
           <button onClick={v.verifyOtp} style={sx(`margin-top:18px;width:100%;border:none;border-radius:18px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:16px;padding:15px;cursor:pointer;box-shadow:0 12px 26px ${v.g.pcShadow};`)}>ยืนยัน · Verify ✨</button>
           <div style={sx('display:flex;gap:14px;margin-top:14px;')}>

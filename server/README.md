@@ -14,8 +14,13 @@ bun start        # production
 bun test         # 8 API tests incl. a real two-account invite→shared-plan flow
 ```
 
-Env vars: `PORT` (8791), `TS_DB` (sqlite path), `TS_JWT_SECRET`, `TS_HIDE_OTP=1`
-(stop returning the OTP in responses once a mailer is wired).
+Env vars (Bun auto-loads `.env`): `PORT` (8791), `TS_DB` (sqlite path),
+`TS_JWT_SECRET`. Email OTP via Resend: `RESEND_API_KEY` (when set, codes are
+emailed and no longer returned in the response), `TS_MAIL_FROM` (verified
+sender). See `.env.example`. Without a key the server returns the code (demo
+mode) so nothing locks out. `src/mail.js` handles delivery; tested in
+`test/mail.test.js` (mailer + the emailed vs demo-fallback `/auth/request`
+paths).
 
 ## Data model
 
