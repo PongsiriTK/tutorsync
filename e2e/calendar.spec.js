@@ -90,6 +90,68 @@ test('copying a market template auto-schedules its calendar', async ({ page }) =
   await expect(page.locator('[data-day][data-has="true"]').first()).toBeVisible()
 })
 
+test('day notes: description, checklist and link persist and mark the day', async ({ page }) => {
+  await seedSession(page)
+  await gotoApp(page)
+  await openPlan(page)
+
+  // open a day (today has a seeded session)
+  const today = await page.evaluate(() => new Date().getDate())
+  await page.locator(`[data-day="${today}"]`).click({ force: true })
+  await expect(page.getByText('📝 บันทึกของวัน · Day context')).toBeVisible()
+
+  await page.fill('textarea', 'เตรียมโจทย์บทที่ 5')
+  await page.fill('input[placeholder*="Add item"]', 'ทบทวนสูตร')
+  await tap(page.getByText('＋', { exact: true }).first())
+  await expect(page.getByText('ทบทวนสูตร')).toBeVisible()
+  // toggle the checklist item done → counter shows 1/1
+  await tap(page.locator('button[aria-label="Toggle"]').first())
+  await expect(page.getByText('1/1')).toBeVisible()
+
+  await page.fill('input[placeholder*="Paste a URL"]', 'drive.google.com/mydoc')
+  await tap(page.getByText('＋', { exact: true }).last())
+  const link = page.locator('a', { hasText: 'drive.google.com' })
+  await expect(link).toBeVisible()
+  expect(await link.getAttribute('href')).toBe('https://drive.google.com/mydoc')
+
+  // close the day sheet → the calendar marks the day with a note
+  await page.mouse.click(195, 90)
+  await expect(page.locator(`[data-day="${today}"][data-note="true"]`)).toBeVisible()
+
+  // survives a reload (guest persistence)
+  await page.reload(); await page.waitForLoadState('networkidle')
+  await openPlan(page)
+  await page.locator(`[data-day="${today}"]`).click({ force: true })
+  await expect(page.getByText('เตรียมโจทย์บทที่ 5')).toBeVisible()
+  await expect(page.getByText('ทบทวนสูตร')).toBeVisible()
+  await expect(page.getByText('1/1')).toBeVisible()
+})
+
+test('copied template carries its day notes', async ({ page }) => {
+  await seedSession(page)
+  await gotoApp(page)
+  await openPlan(page)
+
+  // add a note to today, then publish the plan
+  const today = await page.evaluate(() => new Date().getDate())
+  await page.locator(`[data-day="${today}"]`).click({ force: true })
+  await page.fill('textarea', 'บริบทที่แชร์ไป')
+  await page.mouse.click(195, 90)
+  await tap(page.getByText('เป้าหมาย', { exact: true }).last())
+  await tap(page.getByText('📤 เผยแพร่สู่มาร์เก็ต · Publish to Explore'))
+  await tap(page.getByText('เผยแพร่เลย 🚀'))
+  await expect(page.getByText('Published to Explore')).toBeVisible()
+
+  // back to home → Explore → copy the just-published plan
+  await page.locator('button[aria-label="Back to plans"]').click({ force: true })
+  await tap(page.getByText('🛍️ มาร์เก็ต · Explore'))
+  await tap(page.getByText('โดย พิมพ์ชนก (You)').first())
+  await tap(page.getByText('คัดลอกไปยังของฉัน'))
+  await expect(page.locator('[data-day]').first()).toBeVisible()
+  await page.locator(`[data-day="${today}"]`).click({ force: true })
+  await expect(page.getByText('บริบทที่แชร์ไป')).toBeVisible()
+})
+
 test('delete plan asks for confirmation before deleting', async ({ page }) => {
   await seedSession(page)
   await gotoApp(page)

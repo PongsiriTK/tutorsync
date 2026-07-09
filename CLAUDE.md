@@ -25,6 +25,16 @@ branches, because they create/destroy server resources or need a server id.
 `src/api.js` is the only place that talks HTTP; `stripMeta()` drops `_role`/
 `_shared`/`_rev`/etc. before sending a plan doc.
 
+**Day notes (per-day context):** `plan.dayNotes[dayNum] = {desc, checklist:
+[{id,text,done}], links:[{id,label,url}]}` lives in the plan doc, so it syncs
+(cloud) and travels with copy/publish (server copy/publish + guest copyMarket/
+doPublish carry `dayNotes`). Mutations via `updateDayNote(day, fn)` (prunes
+empty notes) + checklist/link add/toggle/remove; links are sanitized to http(s)
+(`normalizeUrl`, rejects javascript:/data:). UI in the day sheet (`DayNotes` in
+Sheets.jsx); the calendar cell shows 📝 (`cell.hasNote`, `data-note` attr).
+Day notes also flow into the ICS (`noteText` appended to that day's session
+events; an all-day VEVENT for note-only days).
+
 **Calendar export / sync:** `src/ics.js` (client) mirrors `server/src/ics.js`
 (`planToICS`, Bangkok→UTC, status→CONFIRMED/TENTATIVE/CANCELLED) — keep them in
 sync. Client `downloadICS` triggers an .ics download (guest + cloud);

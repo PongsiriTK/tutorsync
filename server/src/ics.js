@@ -23,16 +23,29 @@ function parseRange(time) {
 
 // plan: the plan doc (with .categories and .sessions). year/month: the calendar
 // month the day-of-month values belong to. nowMs: DTSTAMP source (Date.now()).
+// render a day's notes (description + checklist + links) as a text block
+function noteText(note) {
+  if (!note) return ''
+  const parts = []
+  if (note.desc) parts.push(note.desc)
+  for (const c of note.checklist || []) parts.push(`${c.done ? '[x]' : '[ ]'} ${c.text}`)
+  for (const l of note.links || []) parts.push(`🔗 ${l.label || l.url}: ${l.url}`)
+  return parts.join('\n')
+}
+
 export function planToICS(plan, year, month, nowMs, opts = {}) {
   const calName = opts.calName || ('TutorSync · ' + (plan.name || 'Plan'))
   const dtstamp = stampNow(nowMs)
+  const notes = plan.dayNotes || {}
   const lines = [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TutorSync//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'X-WR-CALNAME:' + esc(calName), 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H',
   ]
+  const daysWithSessions = new Set()
   for (const s of plan.sessions || []) {
     const cat = (plan.categories || {})[s.subj] || {}
     const r = parseRange(s.time); if (!r.start) continue
+    daysWithSessions.add(s.day)
     const startMin = r.start.hh * 60 + r.start.mm
     let durMin = r.end ? (r.end.hh * 60 + r.end.mm - startMin) : (s.hours ? s.hours * 60 : 60)
     if (durMin <= 0) durMin = (s.hours || 1) * 60
@@ -41,7 +54,8 @@ export function planToICS(plan, year, month, nowMs, opts = {}) {
     const dtEnd = utcStamp(year, month, s.day, Math.floor(endMin / 60), endMin % 60)
     const status = s.status === 'pending' ? 'TENTATIVE' : (s.status === 'declined' ? 'CANCELLED' : 'CONFIRMED')
     const title = `${plan.emoji || '🗓️'} ${cat.en || cat.th || 'Session'} · ${plan.name || ''}`
-    const desc = `${cat.th || ''}${cat.rate ? ' · ฿' + cat.rate + '/hr' : ''}${s.cost ? ' · ฿' + s.cost : ''} · TutorSync`
+    const nt = noteText(notes[s.day])
+    const desc = `${cat.th || ''}${cat.rate ? ' · ฿' + cat.rate + '/hr' : ''}${s.cost ? ' · ฿' + s.cost : ''} · TutorSync${nt ? '\n\n— วันนี้ · Day notes —\n' + nt : ''}`
     lines.push(
       'BEGIN:VEVENT',
       `UID:ts-${plan.id || 'p'}-${s.id}@tutorsync`,
@@ -51,6 +65,24 @@ export function planToICS(plan, year, month, nowMs, opts = {}) {
       `SUMMARY:${esc(title)}`,
       `DESCRIPTION:${esc(desc)}`,
       `STATUS:${status}`,
+      'END:VEVENT',
+    )
+  }
+  // all-day event for days that have notes but no session, so the context isn't lost
+  for (const dayKey of Object.keys(notes)) {
+    const day = Number(dayKey)
+    if (daysWithSessions.has(day)) continue
+    const nt = noteText(notes[dayKey]); if (!nt) continue
+    const ds = `${year}${pad(month + 1)}${pad(day)}`
+    const de = new Date(Date.UTC(year, month, day + 1))
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:ts-${plan.id || 'p'}-note-${day}@tutorsync`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART;VALUE=DATE:${ds}`,
+      `DTEND;VALUE=DATE:${de.getUTCFullYear()}${pad(de.getUTCMonth() + 1)}${pad(de.getUTCDate())}`,
+      `SUMMARY:${esc('📝 ' + (plan.name || 'Notes') + ' · Day notes')}`,
+      `DESCRIPTION:${esc(nt)}`,
       'END:VEVENT',
     )
   }

@@ -162,6 +162,18 @@ shared collaboration was previously simulated).
       copy-auto-schedule, delete-confirm. 25/25 guest + 3/3 cloud + 25 server
       tests green. Deployed jarvis + Netlify; live public .ics feed verified.
 
+### Phase 12 — Per-day context: description, checklist, links (2026-07-09)
+- [x] `plan.dayNotes[day] = {desc, checklist, links}` in the plan doc (syncs +
+      travels with copy/publish). App.jsx mutations (updateDayNote, checklist
+      add/toggle/remove, link add/remove w/ http(s) sanitize).
+- [x] Day-sheet `DayNotes` UI (description textarea, checklist checkboxes,
+      links open/add/remove); calendar cell 📝 indicator (`data-note`).
+- [x] Carried through server + guest copy/publish; folded into the ICS
+      (per-day session-event notes + all-day VEVENT for note-only days).
+- [x] Tests: ics day-notes + publish→copy carry (backend); guest e2e
+      (persist across reload, calendar marker, copied template carries notes).
+      27 server, 27 guest e2e, 3 cloud e2e green. Deployed jarvis + Netlify.
+
 - [ ] Still outstanding (next): live sockets instead of 20s polling, stable
       public hostname. Owner supplies the Resend key on jarvis for email
       (see DEPLOY.md).

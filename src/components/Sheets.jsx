@@ -73,9 +73,59 @@ export function DaySheet({ v }) {
             ))}
           </div>
           <button onClick={v.openAddForDay} style={sx(`margin-top:14px;width:100%;border:2px dashed ${v.g.pcBorder};border-radius:20px;background:${v.g.pcSoft};color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;`)}>＋ เพิ่มคาบ · Add session</button>
+
+          <DayNotes v={v} />
         </div>
       </SheetShell>
     </>
+  )
+}
+
+function DayNotes({ v }) {
+  const n = v.dayNote
+  return (
+    <div style={sx('margin-top:18px;background:#fff;border-radius:20px;padding:15px 16px;box-shadow:0 8px 20px rgba(180,120,150,.09);')}>
+      <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;margin-bottom:9px;")}>📝 บันทึกของวัน · Day context</div>
+
+      {/* description */}
+      <textarea value={n.desc} onChange={n.setDesc} rows={2} placeholder="รายละเอียด / เป้าหมายของวันนี้…  Notes for this day…"
+        style={sx("width:100%;border:2px solid #EEE6F3;border-radius:14px;background:#FBF7FD;padding:11px 13px;font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;outline:none;resize:none;line-height:1.45;")} />
+
+      {/* checklist */}
+      <div style={sx('display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;')}>
+        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;")}>✅ เช็กลิสต์ · Checklist</div>
+        {n.checklistTotal > 0 && <div style={sx(`font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11.5px;color:${v.g.pc};`)}>{n.checklistDone}/{n.checklistTotal}</div>}
+      </div>
+      <div style={sx('display:flex;flex-direction:column;gap:7px;')}>
+        {n.checklist.map((c) => (
+          <div key={c.id} style={sx('display:flex;align-items:center;gap:10px;')}>
+            <button onClick={c.toggle} aria-label="Toggle" style={sx(c.boxStyle)}>{c.done ? '✓' : ''}</button>
+            <span style={sx(c.textStyle)}>{c.text}</span>
+            <button onClick={c.remove} aria-label="Remove" style={sx('width:22px;height:22px;border:none;border-radius:8px;background:#F6EEFA;color:#B6A9C2;font-size:13px;font-weight:800;cursor:pointer;flex:none;')}>✕</button>
+          </div>
+        ))}
+      </div>
+      <div style={sx('display:flex;gap:8px;align-items:center;margin-top:9px;background:#F8F3FA;border-radius:13px;padding:4px 4px 4px 12px;')}>
+        <input value={n.checklistDraft} onChange={n.setChecklistDraft} onKeyDown={n.checklistKey} placeholder="เพิ่มรายการ…  Add item" style={sx("flex:1;border:none;outline:none;background:transparent;font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;color:#4A3F55;min-width:0;")} />
+        <button onClick={n.addChecklistItem} style={sx(`border:none;border-radius:10px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;padding:8px 12px;cursor:pointer;flex:none;`)}>＋</button>
+      </div>
+
+      {/* links */}
+      <div style={sx("margin:14px 0 8px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;color:#8A7C93;")}>🔗 ลิงก์ · Links</div>
+      <div style={sx('display:flex;flex-direction:column;gap:7px;')}>
+        {n.links.map((l) => (
+          <div key={l.id} style={sx('display:flex;align-items:center;gap:9px;background:#F1EBFC;border-radius:12px;padding:8px 10px;')}>
+            <span style={sx('font-size:14px;flex:none;')}>🔗</span>
+            <a href={l.url} target="_blank" rel="noopener noreferrer" style={sx("flex:1;min-width:0;font-family:'Nunito',sans-serif;font-weight:800;font-size:12.5px;color:#8A6FD0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;")}>{l.label}</a>
+            <button onClick={l.remove} aria-label="Remove" style={sx('width:22px;height:22px;border:none;border-radius:8px;background:#fff;color:#B6A9C2;font-size:13px;font-weight:800;cursor:pointer;flex:none;')}>✕</button>
+          </div>
+        ))}
+      </div>
+      <div style={sx('display:flex;gap:8px;align-items:center;margin-top:9px;background:#F8F3FA;border-radius:13px;padding:4px 4px 4px 12px;')}>
+        <input value={n.linkDraft} onChange={n.setLinkDraft} onKeyDown={n.linkKey} inputMode="url" placeholder="วางลิงก์…  Paste a URL" style={sx("flex:1;border:none;outline:none;background:transparent;font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;color:#4A3F55;min-width:0;")} />
+        <button onClick={n.addDayLink} style={sx(`border:none;border-radius:10px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;padding:8px 12px;cursor:pointer;flex:none;`)}>＋</button>
+      </div>
+    </div>
   )
 }
 

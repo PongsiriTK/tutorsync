@@ -214,7 +214,7 @@ export const app = new Elysia()
       const id = planId()
       const plan = { id, name: item.name, en: item.en, emoji: item.emoji, theme: item.theme, kind: item.kind, goalType: item.goalType,
         budgetTotal: item.budgetTotal, hoursGoal: item.hoursGoal, deadlineDays: item.deadlineDays, elapsedDays: 0,
-        deadlineLabel: 'อีก ' + item.deadlineDays + ' วัน', categories: item.categories, sessions: [] }
+        deadlineLabel: 'อีก ' + item.deadlineDays + ' วัน', categories: item.categories, sessions: [], dayNotes: item.dayNotes || {} }
       db.query('INSERT INTO plans (id, owner, doc, updated_at, rev) VALUES (?, ?, ?, ?, 1)').run(id, email, JSON.stringify(plan), now())
       db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)').run(id, email, 'owner', now())
       db.query('UPDATE market SET uses = uses + 1 WHERE id = ?').run(params.id)
@@ -288,7 +288,7 @@ export const app = new Elysia()
       const item = { id, emoji: p.emoji, name: p.name, en: p.en || 'My goal', theme: p.theme, kind: p.kind, goalType: p.goalType,
         author: (u?.name || 'Someone') + ' (shared)', authorInitials: (u?.name || 'S').charAt(0), authorColor: '#FF8AA0',
         likes: 0, uses: 0, desc: p.desc || 'แพลนที่แชร์ให้ทุกคนคัดลอกไปใช้ได้ 💛 · A goal shared with the community.',
-        budgetTotal: p.budgetTotal, hoursGoal: p.hoursGoal, deadlineDays: p.deadlineDays, categories: cats }
+        budgetTotal: p.budgetTotal, hoursGoal: p.hoursGoal, deadlineDays: p.deadlineDays, categories: cats, dayNotes: p.dayNotes || {} }
       db.query('INSERT INTO market (id, doc, author, likes, uses, published_by, created_at) VALUES (?, ?, ?, 0, 0, ?, ?)')
         .run(id, JSON.stringify(item), item.author, email, now())
       return { item }

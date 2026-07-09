@@ -40,3 +40,22 @@ test('summary carries emoji + category + plan; text is escaped', () => {
   const ics = planToICS(p, 2026, 6, NOW)
   expect(ics).toContain('SUMMARY:📚 Mathematics · A\\, B\\; C')
 })
+
+test('day notes ride the export: appended to session events + all-day for note-only days', () => {
+  const p = {
+    ...plan,
+    dayNotes: {
+      10: { desc: 'Bring past papers', checklist: [{ id: 'a', text: 'Ch.5', done: true }], links: [{ id: 'b', label: 'drive', url: 'https://drive.example/x' }] },
+      20: { desc: 'Rest day — review only', checklist: [], links: [] }, // no session on day 20
+    },
+  }
+  const ics = planToICS(p, 2026, 6, NOW)
+  // appended to the day-10 session event
+  expect(ics).toContain('Day notes')
+  expect(ics).toContain('Bring past papers')
+  expect(ics).toContain('[x] Ch.5')
+  expect(ics).toContain('https://drive.example/x')
+  // all-day VEVENT for day 20 (no session that day)
+  expect(ics).toContain('DTSTART;VALUE=DATE:20260720')
+  expect(ics).toContain('Rest day')
+})

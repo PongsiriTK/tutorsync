@@ -64,7 +64,8 @@ function CalendarGrid({ v }) {
       </div>
       <div style={sx(`display:grid;grid-template-columns:repeat(7,1fr);gap:${v.desktop ? 8 : 5}px;`)}>
         {v.cells.map((cell) => (
-          <button key={cell.key} onClick={cell.onTap} data-day={cell.dayNum || undefined} data-has={cell.hasSess ? 'true' : 'false'} style={sx(cell.style)}>
+          <button key={cell.key} onClick={cell.onTap} data-day={cell.dayNum || undefined} data-has={cell.hasSess ? 'true' : 'false'} data-note={cell.hasNote ? 'true' : 'false'} style={sx(cell.style)}>
+            {cell.hasNote && <span style={sx(cell.noteStyle)}>📝</span>}
             <span style={sx(cell.numStyle)}>{cell.dayNum}</span>
             <div style={sx('display:flex;gap:3px;justify-content:center;margin-top:3px;height:6px;')}>
               {cell.dots.map((d, i) => <i key={i} style={sx(d.style)} />)}

@@ -28,6 +28,10 @@ template galleries).
 - ⏰ **Up-next card** and 7-day **momentum streak strip**
 - ✏️ **Booking sheet** with live budget/hours impact preview + success
   confirmation
+- 📝 **Day context** — every calendar day can hold a **description, a
+  checklist, and links**; days with context are marked on the grid. It syncs,
+  travels with copied/published templates, and shows up in exported/subscribed
+  calendars (per-day event notes)
 - 📅 **Export & sync to your calendar** — download an `.ics` (Apple / Google /
   Outlook), **subscribe to a live feed** that auto-updates (cloud), and per
   session "Add to Google Calendar" links

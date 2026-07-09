@@ -70,6 +70,7 @@ export default class App extends React.Component {
     inviteUrl: '',
     pushState: 'off', pushBusy: false,   // 'off' | 'enabled' | 'denied' | 'unsupported'
     exportOpen: false, deleteConfirmOpen: false,
+    checklistDraft: '', linkDraft: '',
   }
 
   cloud = false          // true once a reachable backend is confirmed
@@ -701,6 +702,48 @@ export default class App extends React.Component {
     this.showToast(leaving ? '👋' : '🗑️', leaving ? 'ออกจากแพลนที่แชร์แล้ว · Left the shared plan' : 'ลบแพลนแล้ว · Plan deleted')
   }
 
+  // ---------- day notes (description / checklist / links) ----------
+  dayNoteFor(plan, day) { return (plan && plan.dayNotes && plan.dayNotes[day]) || { desc: '', checklist: [], links: [] } }
+  updateDayNote(day, fn) {
+    this.setState((s) => {
+      const plans = s.plans.map((p) => {
+        if (p.id !== s.activePlanId) return p
+        const notes = { ...(p.dayNotes || {}) }
+        const cur = notes[day] || { desc: '', checklist: [], links: [] }
+        const next = fn({ desc: cur.desc || '', checklist: cur.checklist || [], links: cur.links || [] })
+        // prune empty notes so the plan doc stays clean
+        if (!next.desc && !(next.checklist && next.checklist.length) && !(next.links && next.links.length)) delete notes[day]
+        else notes[day] = next
+        return { ...p, dayNotes: notes }
+      })
+      return { plans }
+    })
+  }
+  uid() { return 'n' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36) }
+  setDayDesc(day, text) { this.updateDayNote(day, (n) => ({ ...n, desc: text })) }
+  addChecklistItem(day) {
+    const text = (this.state.checklistDraft || '').trim(); if (!text) return
+    this.updateDayNote(day, (n) => ({ ...n, checklist: [...n.checklist, { id: this.uid(), text, done: false }] }))
+    this.setState({ checklistDraft: '' })
+  }
+  toggleChecklistItem(day, id) { this.updateDayNote(day, (n) => ({ ...n, checklist: n.checklist.map((c) => c.id === id ? { ...c, done: !c.done } : c) })) }
+  removeChecklistItem(day, id) { this.updateDayNote(day, (n) => ({ ...n, checklist: n.checklist.filter((c) => c.id !== id) })) }
+  // only http(s) links; prepend https:// if missing; reject script/data URIs
+  normalizeUrl(u) {
+    let s = String(u || '').trim(); if (!s) return null
+    if (/^(javascript|data|vbscript):/i.test(s)) return null
+    if (!/^https?:\/\//i.test(s)) s = 'https://' + s
+    try { const url = new URL(s); if (url.protocol !== 'http:' && url.protocol !== 'https:') return null; return url.href } catch (e) { return null }
+  }
+  addDayLink(day) {
+    const url = this.normalizeUrl(this.state.linkDraft); if (!url) { this.showToast('🔗', 'ลิงก์ไม่ถูกต้อง · Invalid link'); return }
+    let label = url
+    try { label = new URL(url).hostname.replace(/^www\./, '') } catch (e) { /* keep url */ }
+    this.updateDayNote(day, (n) => ({ ...n, links: [...n.links, { id: this.uid(), label, url }] }))
+    this.setState({ linkDraft: '' })
+  }
+  removeDayLink(day, id) { this.updateDayNote(day, (n) => ({ ...n, links: n.links.filter((l) => l.id !== id) })) }
+
   // ---------- export / sync calendar ----------
   planFeedUrls() {
     const plan = this.activePlan()
@@ -757,7 +800,7 @@ export default class App extends React.Component {
       const cats = {}; Object.keys(item.categories).forEach((k) => { cats[k] = { ...item.categories[k] } })
       const plan = { id: nid, name: item.name, en: item.en, emoji: item.emoji, theme: item.theme, kind: item.kind, goalType: item.goalType,
         budgetTotal: item.budgetTotal, hoursGoal: item.hoursGoal, deadlineDays: item.deadlineDays, elapsedDays: 0, deadlineLabel: 'อีก ' + item.deadlineDays + ' วัน',
-        categories: cats, sessions: [] }
+        categories: cats, sessions: [], dayNotes: item.dayNotes ? JSON.parse(JSON.stringify(item.dayNotes)) : {} }
       plan.sessions = this.draftFor(plan)
       const market = s.market.map((m) => m.id === item.id ? { ...m, uses: m.uses + 1 } : m)
       return { plans: [...s.plans, plan], market, marketOpen: false, screen: 'plan', tab: 'cal', activePlanId: nid, theme: item.theme, homeTab: 'mine', addSubj: Object.keys(cats)[0] }
@@ -791,7 +834,7 @@ export default class App extends React.Component {
       const item = { id: nid, emoji: plan.emoji, name: plan.name, en: plan.en || 'My goal', theme: plan.theme, kind: plan.kind, goalType: plan.goalType,
         author, authorInitials: (s.userName || 'พ').charAt(0), authorColor: themes[plan.theme].pc, likes: 0, uses: 0,
         desc: 'แพลนที่ฉันสร้างเองและเผยแพร่ให้ทุกคนคัดลอกไปใช้ได้ 💛 · A goal I built and shared with the community.',
-        budgetTotal: plan.budgetTotal, hoursGoal: plan.hoursGoal, deadlineDays: plan.deadlineDays, categories: cats }
+        budgetTotal: plan.budgetTotal, hoursGoal: plan.hoursGoal, deadlineDays: plan.deadlineDays, categories: cats, dayNotes: plan.dayNotes ? JSON.parse(JSON.stringify(plan.dayNotes)) : {} }
       return { market: [item, ...s.market], publishOpen: false }
     })
     this.showToast('🚀', 'เผยแพร่แล้ว! อยู่ในมาร์เก็ตแล้ว · Published to Explore')
@@ -952,16 +995,21 @@ export default class App extends React.Component {
       const dotSize = st.desktop ? 6 : 5
       const numSize = st.desktop ? 15.5 : 14
       const cellRadius = st.desktop ? 18 : 15
+      const notesMap = plan.dayNotes || {}
       for (let d = 1; d <= dim; d++) {
         const ds = this.sessionsFor(plan, d), isToday = d === TODAY, has = ds.length > 0
+        const nd = notesMap[d]
+        const hasNote = !!(nd && (nd.desc || (nd.checklist && nd.checklist.length) || (nd.links && nd.links.length)))
         const dots = ds.slice(0, 3).map((s) => ({ style: `width:${dotSize}px;height:${dotSize}px;border-radius:50%;background:${plan.categories[s.subj] ? plan.categories[s.subj].color : pt.pc};` }))
         let bg = has ? '#fff' : 'rgba(255,255,255,.45)'
         if (isToday) bg = pt.pc
         cells.push({
           key: 'd' + d, dayNum: d,
-          style: `aspect-ratio:1;border:none;border-radius:${cellRadius}px;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:${has && !isToday ? '0 4px 10px rgba(180,120,150,.1)' : (isToday ? '0 6px 14px ' + pt.shadow : 'none')};padding:0;`,
+          style: `position:relative;aspect-ratio:1;border:none;border-radius:${cellRadius}px;background:${bg};cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:${has && !isToday ? '0 4px 10px rgba(180,120,150,.1)' : (isToday ? '0 6px 14px ' + pt.shadow : 'none')};padding:0;`,
           numStyle: `font-family:'Baloo Thai 2',sans-serif;font-weight:${isToday ? 800 : 600};font-size:${numSize}px;color:${isToday ? '#fff' : (has ? '#4A3F55' : '#B7A9C2')};`,
-          dots, hasSess: has, onTap: () => this.setState({ dayOpen: true, selDay: d }),
+          dots, hasSess: has, hasNote,
+          noteStyle: `position:absolute;top:4px;right:5px;font-size:8px;line-height:1;opacity:${isToday ? '1' : '.85'};`,
+          onTap: () => this.setState({ dayOpen: true, selDay: d }),
         })
       }
     }
@@ -1394,6 +1442,32 @@ export default class App extends React.Component {
       })(),
       dayOpen: st.dayOpen, closeDay: () => this.setState({ dayOpen: false }), dayLabelTH, dayLabelEN, daySessions, dayEmpty,
       openAddForDay: () => this.setState({ addOpen: true, dayOpen: false, addDate: st.selDay, addSubj: plan ? Object.keys(plan.categories)[0] : null }),
+      dayNote: (() => {
+        const day = st.selDay
+        const n = this.dayNoteFor(plan, day)
+        return {
+          desc: n.desc || '',
+          setDesc: (e) => this.setDayDesc(day, e.target.value),
+          checklist: (n.checklist || []).map((c) => ({
+            id: c.id, text: c.text, done: c.done,
+            toggle: () => this.toggleChecklistItem(day, c.id),
+            remove: () => this.removeChecklistItem(day, c.id),
+            boxStyle: `width:20px;height:20px;border-radius:7px;border:2px solid ${c.done ? pt.pc : '#DCCFE6'};background:${c.done ? pt.pc : '#fff'};cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;`,
+            textStyle: `flex:1;min-width:0;font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;color:${c.done ? '#B6A9C2' : '#4A3F55'};${c.done ? 'text-decoration:line-through;' : ''}`,
+          })),
+          checklistDraft: st.checklistDraft,
+          setChecklistDraft: (e) => this.setState({ checklistDraft: e.target.value }),
+          addChecklistItem: () => this.addChecklistItem(day),
+          checklistKey: (e) => { if (e.key === 'Enter') this.addChecklistItem(day) },
+          checklistDone: (n.checklist || []).filter((c) => c.done).length,
+          checklistTotal: (n.checklist || []).length,
+          links: (n.links || []).map((l) => ({ id: l.id, label: l.label, url: l.url, remove: () => this.removeDayLink(day, l.id) })),
+          linkDraft: st.linkDraft,
+          setLinkDraft: (e) => this.setState({ linkDraft: e.target.value }),
+          addDayLink: () => this.addDayLink(day),
+          linkKey: (e) => { if (e.key === 'Enter') this.addDayLink(day) },
+        }
+      })(),
       slotOpen: st.slotOpen, closeSlot: () => this.setState({ slotOpen: false }), slot,
       rescheduleSlot: this.rescheduleSlot,
       commentDraft: st.commentDraft, setCommentDraft: (e) => this.setState({ commentDraft: e.target.value }), commentKey: (e) => { if (e.key === 'Enter') this.addComment() }, addComment: this.addComment,

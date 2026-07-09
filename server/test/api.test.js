@@ -136,6 +136,23 @@ test('market copy adds an owned plan and bumps uses', async () => {
   expect(state.plans.some((p) => p.name === item.name)).toBe(true)
 })
 
+test('day notes travel through publish → copy', async () => {
+  const owner = await signIn('notesown@test.dev')
+  const [, st] = await json(await call('/state', { headers: authed(owner) }))
+  const plan = st.plans[0]
+  // owner adds day notes and syncs
+  const doc = { ...plan, dayNotes: { 12: { desc: 'Exam focus', checklist: [{ id: 'x', text: 'formulae', done: false }], links: [{ id: 'y', label: 'sheet', url: 'https://ex.com/s' }] } } }
+  await call('/plans/' + plan.id, { method: 'PUT', headers: authed(owner), body: { plan: doc } })
+  const [, pub] = await json(await call('/market/publish', { method: 'POST', headers: authed(owner), body: { plan: doc } }))
+  expect(pub.item.dayNotes['12'].desc).toBe('Exam focus')
+
+  // another account copies the published template → gets the notes
+  const other = await signIn('notescopy@test.dev')
+  const [, res] = await json(await call('/market/' + pub.item.id + '/copy', { method: 'POST', headers: authed(other) }))
+  expect(res.plan.dayNotes['12'].desc).toBe('Exam focus')
+  expect(res.plan.dayNotes['12'].links[0].url).toBe('https://ex.com/s')
+})
+
 test('push: exposes VAPID key, stores a subscription, unsubscribes', async () => {
   const tok = await signIn('push@test.dev')
   const [ks, keyRes] = await json(await call('/push/key', { headers: authed(tok) }))
