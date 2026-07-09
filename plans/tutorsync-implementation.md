@@ -149,9 +149,22 @@ shared collaboration was previously simulated).
       20 server tests, 20/20 guest e2e, 3/3 cloud e2e green. Deployed
       jarvis + Netlify (demo mode until a key is added on jarvis).
 
+### Phase 11 — Calendar export/sync + auto-schedule + delete journey (2026-07-09)
+- [x] `server/src/ics.js` + client `src/ics.js` (planToICS, Bangkok→UTC, status
+      mapping); `feed_token` column + `_feedToken` in /state; public
+      `GET /calendar/:token.ics`. Backend tests (ics unit + feed endpoint).
+- [x] Client: Export/Sync sheet (download .ics; cloud subscribe via webcal/
+      Google/copy), per-session "Add to Google Calendar" + single .ics.
+- [x] `src/schedule.js` auto-schedule; copyMarket auto-fills the copied
+      template; reusable "Auto-fill" action.
+- [x] Delete-plan confirmation dialog (owner delete vs member leave).
+- [x] `e2e/calendar.spec.js` (5): .ics download, per-session add, auto-fill,
+      copy-auto-schedule, delete-confirm. 25/25 guest + 3/3 cloud + 25 server
+      tests green. Deployed jarvis + Netlify; live public .ics feed verified.
+
 - [ ] Still outstanding (next): live sockets instead of 20s polling, stable
-      public hostname (named CF tunnel / Tailscale Funnel). Owner supplies the
-      Resend key on jarvis to flip email on (see DEPLOY.md).
+      public hostname. Owner supplies the Resend key on jarvis for email
+      (see DEPLOY.md).
 
 ## Validation
 

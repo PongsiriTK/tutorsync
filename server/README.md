@@ -46,6 +46,7 @@ the other (last-write-wins; the client also polls every 20s).
 | GET | `/push/key` | VAPID public key |
 | POST | `/push/subscribe` · `/push/unsubscribe` | manage a browser push subscription |
 | POST | `/push/test` | send an immediate reminder about your next session |
+| GET | `/calendar/:token.ics` | **public** iCalendar feed for a plan (token = auth) |
 
 All non-auth routes require `Authorization: Bearer <jwt>`.
 

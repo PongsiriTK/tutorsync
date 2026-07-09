@@ -7,6 +7,7 @@ import { seedPlansFor, seedMarket } from './seed.js'
 import { vapidPublicKey, saveSubscription, removeSubscription, sendToUser, startScheduler } from './push.js'
 import { reminderPayload, nextOccurrence } from './reminders.js'
 import { mailConfigured, sendOtpEmail } from './mail.js'
+import { planToICS } from './ics.js'
 
 const PORT = Number(process.env.PORT || 8791)
 const JWT_SECRET = process.env.TS_JWT_SECRET || 'tutorsync-dev-secret-change-me'
@@ -44,13 +45,22 @@ function membersOf(planId) {
   return db.query('SELECT email, role FROM plan_members WHERE plan_id = ? ORDER BY joined_at').all(planId)
 }
 
+// unguessable per-plan token for the public .ics subscription feed
+function ensureFeedToken(planId) {
+  const row = db.query('SELECT feed_token FROM plans WHERE id = ?').get(planId)
+  if (row && row.feed_token) return row.feed_token
+  const tk = 'f_' + token(12)
+  db.query('UPDATE plans SET feed_token = ? WHERE id = ?').run(tk, planId)
+  return tk
+}
+
 function plansForUser(email) {
   const rows = db.query(`
     SELECT p.*, m.role AS my_role, m.joined_at AS joined_at FROM plans p
     JOIN plan_members m ON m.plan_id = p.id
     WHERE m.email = ? ORDER BY m.joined_at, p.updated_at
   `).all(email)
-  return rows.map((r) => ({ ...parsePlan(r), _role: r.my_role, _shared: r.owner !== email, _members: membersOf(r.id) }))
+  return rows.map((r) => ({ ...parsePlan(r), _role: r.my_role, _shared: r.owner !== email, _members: membersOf(r.id), _feedToken: ensureFeedToken(r.id) }))
 }
 
 function marketList() {
@@ -66,6 +76,21 @@ export const app = new Elysia()
   .use(cors({ origin: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }))
   .use(jwt({ name: 'jwt', secret: JWT_SECRET, exp: '30d' }))
   .get('/health', () => ({ ok: true, service: 'tutorsync', time: now() }))
+
+  // Public .ics subscription feed (the token is the secret — calendar apps
+  // can't send auth headers). Apple/Google "add calendar by URL" hit this.
+  .get('/calendar/:token', ({ params, set }) => {
+    const tk = String(params.token).replace(/\.ics$/i, '')
+    const row = db.query('SELECT * FROM plans WHERE feed_token = ?').get(tk)
+    if (!row) { set.status = 404; return 'not found' }
+    let doc; try { doc = JSON.parse(row.doc) } catch { doc = { sessions: [] } }
+    const d = new Date(now())
+    const ics = planToICS({ ...doc, id: row.id }, d.getFullYear(), d.getMonth(), now())
+    set.headers['content-type'] = 'text/calendar; charset=utf-8'
+    set.headers['content-disposition'] = `inline; filename="tutorsync-${row.id}.ics"`
+    set.headers['cache-control'] = 'no-cache'
+    return ics
+  })
 
   // ----- auth: passwordless OTP -----
   .post('/auth/request', async ({ body, set }) => {
@@ -131,7 +156,7 @@ export const app = new Elysia()
       const stored = { ...doc, id }
       db.query('INSERT INTO plans (id, owner, doc, updated_at, rev) VALUES (?, ?, ?, ?, 1)').run(id, email, JSON.stringify(stored), now())
       db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)').run(id, email, 'owner', now())
-      return { plan: { ...stored, _role: 'owner', _shared: false, _rev: 1, _members: membersOf(id) } }
+      return { plan: { ...stored, _role: 'owner', _shared: false, _rev: 1, _members: membersOf(id), _feedToken: ensureFeedToken(id) } }
     }, { body: t.Object({ plan: t.Any() }) })
 
     // save a plan doc (owner or member). last-write-wins; bumps rev.
@@ -171,7 +196,7 @@ export const app = new Elysia()
         db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)')
           .run(inv.plan_id, email, 'member', now())
       }
-      return { plan: { ...parsePlan(plan), _role: plan.owner === email ? 'owner' : 'member', _shared: plan.owner !== email, _members: membersOf(plan.id) } }
+      return { plan: { ...parsePlan(plan), _role: plan.owner === email ? 'owner' : 'member', _shared: plan.owner !== email, _members: membersOf(plan.id), _feedToken: ensureFeedToken(plan.id) } }
     })
 
     // ----- market -----
@@ -193,7 +218,7 @@ export const app = new Elysia()
       db.query('INSERT INTO plans (id, owner, doc, updated_at, rev) VALUES (?, ?, ?, ?, 1)').run(id, email, JSON.stringify(plan), now())
       db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)').run(id, email, 'owner', now())
       db.query('UPDATE market SET uses = uses + 1 WHERE id = ?').run(params.id)
-      return { plan: { ...plan, _role: 'owner', _shared: false, _rev: 1, _members: membersOf(id) } }
+      return { plan: { ...plan, _role: 'owner', _shared: false, _rev: 1, _members: membersOf(id), _feedToken: ensureFeedToken(id) } }
     })
 
     // notify the OTHER members of a plan about a confirmation-loop event.

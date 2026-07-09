@@ -7,6 +7,7 @@ import { CalendarTab, GoalsTab, TeamTab, AiTab, AiDock } from './Tabs.jsx'
 import {
   DaySheet, SlotSheet, AddSheet, CreateSheet, MarketSheet, PlanEditSheet,
   EditTargetSheet, PublishSheet, SettingsSheet, MoveConfirm, ReschedSheet, BookedConfirm,
+  ExportSheet, DeleteConfirm,
 } from './Sheets.jsx'
 
 export function AppShell({ v }) {
@@ -18,6 +19,8 @@ function Overlays({ v }) {
     <>
       {v.pendingMove && <MoveConfirm v={v} />}
       {v.reschedOpen && <ReschedSheet v={v} />}
+      {v.exportOpen && <ExportSheet v={v} />}
+      {v.deleteConfirmOpen && <DeleteConfirm v={v} />}
       {v.toast && (
         <div style={sx(`position:absolute;top:${v.desktop ? '30px' : '96px'};left:50%;z-index:40;background:#4A3F55;color:#fff;border-radius:18px;padding:11px 18px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13.5px;box-shadow:0 12px 30px rgba(74,63,85,.4);display:flex;align-items:center;gap:8px;white-space:nowrap;animation:ts-toast 2.8s ease forwards;`)}>
           <span style={sx('font-size:18px;')}>{v.toast.emoji}</span>{v.toast.text}

@@ -28,8 +28,16 @@ template galleries).
 - ⏰ **Up-next card** and 7-day **momentum streak strip**
 - ✏️ **Booking sheet** with live budget/hours impact preview + success
   confirmation
+- 📅 **Export & sync to your calendar** — download an `.ics` (Apple / Google /
+  Outlook), **subscribe to a live feed** that auto-updates (cloud), and per
+  session "Add to Google Calendar" links
+- ✨ **Auto-scheduling** — copying a template drafts a starter schedule onto the
+  calendar (no more empty skeleton); an "Auto-fill" action does the same for any
+  plan, spreading sessions across the month within your budget/hours
 - 🛍️ **Explore market** — search & filter community templates, preview, copy
-  to your plans, publish your own
+  (auto-scheduled) to your plans, publish your own
+- 🗑️ **Safe delete** — deleting a plan asks to confirm; on a shared plan a
+  non-owner "leaves" instead of deleting it for everyone
 - 🤝 **Team view** — instructors, rates, presence, invite link; **assign any
   category to a teammate** ("Taught by" picker in plan settings — e.g. hand
   English to Ms. Lisa and she joins the team, legend and session details)

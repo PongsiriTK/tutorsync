@@ -4,6 +4,9 @@ import { assistantReply } from './ai.js'
 import { fmt } from './util.js'
 import { api, hasApi, probe, getToken, setToken } from './api.js'
 import { pushSupported, isSubscribed, enableReminders, disableReminders, sendTestReminder } from './push.js'
+import { planToICS, googleEventUrl, downloadICS } from './ics.js'
+import { autoScheduleSessions } from './schedule.js'
+import { apiBase } from './api.js'
 import { AppShell } from './components/Chrome.jsx'
 
 const stripMeta = (p) => { const o = { ...p }; delete o._role; delete o._shared; delete o._rev; delete o._owner; delete o._updatedAt; return o }
@@ -66,6 +69,7 @@ export default class App extends React.Component {
     desktop: typeof window !== 'undefined' && window.innerWidth >= 1024,
     inviteUrl: '',
     pushState: 'off', pushBusy: false,   // 'off' | 'enabled' | 'denied' | 'unsupported'
+    exportOpen: false, deleteConfirmOpen: false,
   }
 
   cloud = false          // true once a reachable backend is confirmed
@@ -681,14 +685,47 @@ export default class App extends React.Component {
     })
     this.showToast('✨', 'บันทึกการตั้งค่าแล้ว · Plan updated!')
   }
-  deletePlan = async () => {
+  // delete is destructive → confirm first. Owner deletes for everyone; a
+  // non-owner member just leaves the shared plan.
+  openDeleteConfirm = () => this.setState({ deleteConfirmOpen: true })
+  cancelDelete = () => this.setState({ deleteConfirmOpen: false })
+  confirmDelete = async () => {
     const id = this.state.activePlanId
+    const plan = this.activePlan()
+    const leaving = this.cloud && plan && !this.amOwner(plan)
     if (this.cloud) { try { await api.deletePlan(id) } catch (e) { /* keep local removal anyway */ } this._synced.delete(id) }
     this.setState((s) => {
       const plans = s.plans.filter((p) => p.id !== id)
-      return { plans, planEditOpen: false, screen: 'home', homeTab: 'mine', activePlanId: plans[0] ? plans[0].id : null }
+      return { plans, deleteConfirmOpen: false, planEditOpen: false, screen: 'home', homeTab: 'mine', activePlanId: plans[0] ? plans[0].id : null }
     })
-    this.showToast('🗑️', 'ลบแพลนแล้ว · Plan deleted')
+    this.showToast(leaving ? '👋' : '🗑️', leaving ? 'ออกจากแพลนที่แชร์แล้ว · Left the shared plan' : 'ลบแพลนแล้ว · Plan deleted')
+  }
+
+  // ---------- export / sync calendar ----------
+  planFeedUrls() {
+    const plan = this.activePlan()
+    if (!plan || !this.cloud || !plan._feedToken || !apiBase) return null
+    const httpUrl = `${apiBase}/calendar/${plan._feedToken}.ics`
+    const host = apiBase.replace(/^https?:\/\//, '')
+    return {
+      httpUrl,
+      webcal: `webcal://${host}/calendar/${plan._feedToken}.ics`,
+      google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(httpUrl)}`,
+    }
+  }
+  exportPlanICS = () => {
+    const plan = this.activePlan(); if (!plan) return
+    const ics = planToICS(plan, this.state.year, this.state.month, Date.now())
+    const fname = 'tutorsync-' + (plan.en || plan.name || 'plan').replace(/[^\w-]+/g, '-').toLowerCase() + '.ics'
+    downloadICS(fname, ics)
+    this.showToast('📥', 'ดาวน์โหลดไฟล์ปฏิทินแล้ว · Calendar file downloaded')
+  }
+  exportSlotICS = () => {
+    const plan = this.activePlan(); const s = plan && plan.sessions.find((x) => x.id === this.state.selSlot)
+    if (!plan || !s) return
+    const ics = planToICS({ ...plan, sessions: [s] }, this.state.year, this.state.month, Date.now())
+    downloadICS('tutorsync-session.ics', ics)
+    this.showToast('📥', 'เพิ่มลงปฏิทินแล้ว · Added to calendar')
   }
 
   likeMarket = () => {
@@ -697,14 +734,21 @@ export default class App extends React.Component {
     this.setState((s) => { const market = s.market.map((m) => m.id === id ? { ...m, likes: m.likes + 1 } : m); return { market } })
     this.showToast('❤️', 'ถูกใจแล้ว · Liked!')
   }
+  // draft a starter schedule so a copied template lands on a filled calendar
+  draftFor(plan) {
+    const now = new Date()
+    return autoScheduleSessions(plan, { today: this.TODAY, dim: this.daysInMonth(now.getFullYear(), now.getMonth()) })
+  }
   copyMarket = async () => {
     const item = (this.state.market || []).find((x) => x.id === this.state.selMarket); if (!item) return
     if (this.cloud) {
       try {
         const { plan } = await api.copyMarket(item.id)
-        this._synced.set(plan.id, JSON.stringify(stripMeta(plan)))
-        this.setState((s) => ({ plans: [...s.plans, plan], market: s.market.map((m) => m.id === item.id ? { ...m, uses: m.uses + 1 } : m), marketOpen: false, screen: 'plan', tab: 'cal', activePlanId: plan.id, theme: item.theme, homeTab: 'mine', addSubj: Object.keys(plan.categories)[0] }))
-        this.showToast('🎉', 'คัดลอกแล้ว! เริ่มวางแผนได้เลย · Copied to your plans')
+        const filled = { ...plan, sessions: this.draftFor(plan) }
+        // persist the drafted sessions to the server (copyMarket returns an empty plan)
+        this._synced.set(plan.id, JSON.stringify(stripMeta({ ...plan, sessions: [] })))
+        this.setState((s) => ({ plans: [...s.plans, filled], market: s.market.map((m) => m.id === item.id ? { ...m, uses: m.uses + 1 } : m), marketOpen: false, screen: 'plan', tab: 'cal', activePlanId: plan.id, theme: item.theme, homeTab: 'mine', addSubj: Object.keys(plan.categories)[0] }))
+        this.showToast('🗓️', 'คัดลอก + ร่างตารางให้แล้ว ปรับได้เลย · Copied & auto-scheduled')
       } catch (e) { this.showToast('😕', 'คัดลอกไม่สำเร็จ · Could not copy') }
       return
     }
@@ -714,10 +758,21 @@ export default class App extends React.Component {
       const plan = { id: nid, name: item.name, en: item.en, emoji: item.emoji, theme: item.theme, kind: item.kind, goalType: item.goalType,
         budgetTotal: item.budgetTotal, hoursGoal: item.hoursGoal, deadlineDays: item.deadlineDays, elapsedDays: 0, deadlineLabel: 'อีก ' + item.deadlineDays + ' วัน',
         categories: cats, sessions: [] }
+      plan.sessions = this.draftFor(plan)
       const market = s.market.map((m) => m.id === item.id ? { ...m, uses: m.uses + 1 } : m)
       return { plans: [...s.plans, plan], market, marketOpen: false, screen: 'plan', tab: 'cal', activePlanId: nid, theme: item.theme, homeTab: 'mine', addSubj: Object.keys(cats)[0] }
     })
-    this.showToast('🎉', 'คัดลอกแล้ว! เริ่มวางแผนได้เลย · Copied to your plans')
+    this.showToast('🗓️', 'คัดลอก + ร่างตารางให้แล้ว ปรับได้เลย · Copied & auto-scheduled')
+  }
+  // auto-fill an existing plan's calendar with a suggested schedule
+  autoFillSchedule = () => {
+    const plan = this.activePlan(); if (!plan) return
+    const base = Math.max(0, ...plan.sessions.map((x) => x.id)) + 1
+    const now = new Date()
+    const drafted = autoScheduleSessions(plan, { today: this.TODAY, dim: this.daysInMonth(now.getFullYear(), now.getMonth()), startId: base })
+    if (!drafted.length) { this.showToast('👌', 'ตารางครบแล้ว · Schedule already full'); return }
+    this.setState((s) => ({ plans: s.plans.map((p) => p.id === s.activePlanId ? { ...p, sessions: [...p.sessions, ...drafted] } : p), exportOpen: false }))
+    this.showToast('✨', 'เติม ' + drafted.length + ' คาบให้แล้ว · Drafted ' + drafted.length + ' sessions')
   }
   doPublish = async () => {
     const plan = this.activePlan(); if (!plan) return
@@ -1073,6 +1128,9 @@ export default class App extends React.Component {
         slot.proposeSlot = () => this.proposeSlot()
         slot.acceptProposal = () => this.acceptProposal(s.id)
         slot.keepOriginal = () => this.keepOriginal(s.id)
+        // add-to-calendar for this one session
+        slot.googleUrl = googleEventUrl(plan, s, st.year, st.month)
+        slot.exportICS = this.exportSlotICS
       }
     }
 
@@ -1297,7 +1355,19 @@ export default class App extends React.Component {
       incEdTarget: () => this.setState((s) => ({ editDraft: { ...s.editDraft, target: this.bumpTarget(s.editDraft.goalType, s.editDraft.target, 1) } })),
       decEdTarget: () => this.setState((s) => ({ editDraft: { ...s.editDraft, target: this.bumpTarget(s.editDraft.goalType, s.editDraft.target, -1) } })),
       setEdName: (e) => this.setState((s) => ({ editDraft: { ...s.editDraft, name: e.target.value } })),
-      addCat: this.addCat, savePlanEdit: this.savePlanEdit, deletePlan: this.deletePlan,
+      addCat: this.addCat, savePlanEdit: this.savePlanEdit, deletePlan: this.openDeleteConfirm,
+      // delete confirmation journey
+      deleteConfirmOpen: st.deleteConfirmOpen, cancelDelete: this.cancelDelete, confirmDelete: this.confirmDelete,
+      deleteIsLeave: plan ? (this.cloud && !this.amOwner(plan)) : false,
+      deletePlanName: plan ? plan.name : '',
+      deleteSessionCount: plan ? plan.sessions.length : 0,
+      // export / sync calendar
+      exportOpen: st.exportOpen, openExport: () => this.setState({ exportOpen: true }), closeExport: () => this.setState({ exportOpen: false }),
+      exportPlanICS: this.exportPlanICS, autoFillSchedule: this.autoFillSchedule,
+      copyFeed: () => this.showToast('🔗', 'คัดลอกลิงก์ปฏิทินแล้ว · Calendar link copied'),
+      feedUrls: this.planFeedUrls(),
+      exportPlanName: plan ? plan.name : '',
+      sessionCount: plan ? plan.sessions.length : 0,
       members, invite: this.doInvite, inviteUrl: st.inviteUrl, cloud: this.cloud,
       tutorRequests, isTutorView: plan ? (this.cloud && !this.amOwner(plan)) : false,
       messages, aiThinking: st.aiThinking, chips,

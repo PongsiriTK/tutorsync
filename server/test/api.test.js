@@ -192,6 +192,25 @@ test('state exposes real plan membership; notify targets the other members', asy
   expect(fe).toBe(403)
 })
 
+test('calendar feed: /state exposes a feed token; public .ics feed serves the plan', async () => {
+  const tok = await signIn('feed@test.dev')
+  const [, st] = await json(await call('/state', { headers: authed(tok) }))
+  const plan = st.plans[0]
+  expect(plan._feedToken).toMatch(/^f_/)
+
+  // public, no auth needed — the token is the secret
+  const res = await call('/calendar/' + plan._feedToken + '.ics')
+  expect(res.status).toBe(200)
+  expect(res.headers.get('content-type')).toContain('text/calendar')
+  const body = await res.text()
+  expect(body.startsWith('BEGIN:VCALENDAR')).toBe(true)
+  expect(body).toContain('BEGIN:VEVENT')
+
+  // a bad token 404s
+  const bad = await call('/calendar/f_nope.ics')
+  expect(bad.status).toBe(404)
+})
+
 test('push endpoints require auth', async () => {
   const [s1] = await json(await call('/push/subscribe', { method: 'POST', body: { subscription: {} } }))
   expect(s1).toBe(401)

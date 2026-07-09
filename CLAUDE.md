@@ -25,6 +25,27 @@ branches, because they create/destroy server resources or need a server id.
 `src/api.js` is the only place that talks HTTP; `stripMeta()` drops `_role`/
 `_shared`/`_rev`/etc. before sending a plan doc.
 
+**Calendar export / sync:** `src/ics.js` (client) mirrors `server/src/ics.js`
+(`planToICS`, Bangkok→UTC, status→CONFIRMED/TENTATIVE/CANCELLED) — keep them in
+sync. Client `downloadICS` triggers an .ics download (guest + cloud);
+`googleEventUrl` builds a per-session Google "create event" link. Live
+subscribe (cloud): server adds a `feed_token` per plan (`_feedToken` in /state)
+and serves a PUBLIC `GET /calendar/:token.ics` (token IS the auth — calendar
+apps can't send headers). The Export/Sync sheet offers download + webcal:// +
+Google add-by-URL + copy. Feed uses the current year/month for day-of-month
+sessions.
+
+**Auto-schedule:** `src/schedule.js` `autoScheduleSessions(plan, {today, dim})`
+spreads each category's target across the month within budget/hours caps,
+status 'confirmed'. `copyMarket` fills a copied template (so it's not empty);
+`autoFillSchedule` does it for any plan. Calendar-tab buttons sit low — the
+fixed bottom nav (z:8) is above the scroll content (z:4), so e2e taps them via
+`tapCalendarAction` (scroll pane to bottom first).
+
+**Delete journey:** the plan-edit Delete button opens `DeleteConfirm` (not an
+immediate delete). Owner → delete-for-everyone; non-owner member → "leave"
+(server DELETE already distinguishes). Copy differs per role via `amOwner`.
+
 **Email OTP (Resend):** `server/src/mail.js` sends the code via Resend when
 `RESEND_API_KEY` is set (Bun auto-loads `server/.env`, gitignored + rsync
 `--exclude .env` so deploys never wipe it). `/auth/request` returns

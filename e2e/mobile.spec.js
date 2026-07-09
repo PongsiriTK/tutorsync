@@ -145,9 +145,9 @@ test.describe('calendar & booking', () => {
     await tap(page.locator('button', { hasText: '17:00–19:00' }).last())
     await expect(page.getByText('รีแอคชัน · React')).toBeVisible()
 
-    // add a reaction from the palette → appears as an active chip with count
+    // add a reaction from the palette → confirmation toast fires
     await tap(page.getByText('💪', { exact: true }))
-    await expect(page.locator('button', { hasText: '💪' }).first()).toContainText('1')
+    await expect(page.getByText('รีแอคชันของคุณ · Reaction sent')).toBeVisible()
 
     // comment
     await page.fill('input[placeholder*="เขียนคอมเมนต์"]', 'สู้ๆ นะคะ!')
@@ -259,9 +259,10 @@ test.describe('goals & plan management', () => {
     await tap(page.getByText('บันทึกการตั้งค่า · Save changes ✨'))
     await expect(page.getByText('แพลนทดลอง v2')).toBeVisible()
 
-    // delete the scratch plan
+    // delete the scratch plan (now goes through a confirmation dialog)
     await tap(page.getByText('แก้ไข', { exact: true }))
     await tap(page.getByText('🗑️ ลบแพลนนี้ · Delete plan'))
+    await tap(page.getByText('ลบเลย · Delete'))
     await expect(page.getByText('Plan deleted')).toBeVisible()
     await expect(page.getByText('แพลนทดลอง v2')).toHaveCount(0)
     await expect(page.getByText('University Entrance Prep')).toBeVisible()

@@ -12,6 +12,7 @@ export function CalendarTab({ v }) {
         </div>
         <div style={sx('width:320px;flex:none;')}>
           <LegendCard v={v} />
+          <CalendarActions v={v} style="margin-top:14px;" />
         </div>
       </div>
     )
@@ -21,7 +22,17 @@ export function CalendarTab({ v }) {
       <UpNextCard v={v} />
       <CalendarGrid v={v} />
       <LegendCard v={v} style="margin-top:18px;" />
-      <div style={sx('text-align:center;margin-top:16px;font-size:12px;font-weight:700;color:#C6B6D0;')}>แตะเพื่อดู · ลากวันเพื่อย้ายคาบ · Tap or drag a day ✨</div>
+      <CalendarActions v={v} style="margin-top:12px;" />
+      <div style={sx('text-align:center;margin-top:14px;font-size:12px;font-weight:700;color:#C6B6D0;')}>แตะเพื่อดู · ลากวันเพื่อย้ายคาบ · Tap or drag a day ✨</div>
+    </div>
+  )
+}
+
+function CalendarActions({ v, style = '' }) {
+  return (
+    <div style={sx(`display:flex;gap:9px;${style}`)}>
+      <button onClick={v.openExport} style={sx(`flex:1;border:2px solid ${v.g.pcBorder};border-radius:16px;background:#fff;color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:12px;cursor:pointer;`)}>📅 ส่งออก / ซิงก์ · Export / Sync</button>
+      <button onClick={v.autoFillSchedule} style={sx(`flex:1;border:2px dashed ${v.g.pcBorder};border-radius:16px;background:${v.g.pcSoft};color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:12px;cursor:pointer;`)}>✨ เติมตารางอัตโนมัติ · Auto-fill</button>
     </div>
   )
 }

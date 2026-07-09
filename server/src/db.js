@@ -82,7 +82,10 @@ db.exec(`
 `)
 
 // forward-migrate DBs created before a column existed (SQLite lacks ADD COLUMN IF NOT EXISTS)
-for (const [table, col, def] of [['users', 'onboarded', 'INTEGER NOT NULL DEFAULT 0']]) {
+for (const [table, col, def] of [
+  ['users', 'onboarded', 'INTEGER NOT NULL DEFAULT 0'],
+  ['plans', 'feed_token', 'TEXT'],
+]) {
   const has = db.query(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)
   if (!has) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`)
 }

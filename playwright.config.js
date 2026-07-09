@@ -24,6 +24,7 @@ export default defineConfig({
   },
   projects: [
     { name: 'mobile', testMatch: /mobile\.spec\.js/, use: { viewport: { width: 390, height: 844 } } },
+    { name: 'calendar', testMatch: /calendar\.spec\.js/, use: { viewport: { width: 390, height: 844 } } },
     { name: 'desktop', testMatch: /desktop\.spec\.js/, use: { viewport: { width: 1440, height: 900 } } },
     // cloud project only runs when a live backend URL is provided:
     //   TS_E2E_API=http://localhost:8791 npx playwright test --project=cloud

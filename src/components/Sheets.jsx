@@ -143,6 +143,11 @@ export function SlotSheet({ v }) {
           {s.showReschedule && (
             <button onClick={v.rescheduleSlot} style={sx(`margin-top:12px;width:100%;border:2px solid ${v.g.pcBorder};border-radius:16px;background:#fff;color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;`)}>🗓️ ย้ายวัน · Reschedule</button>
           )}
+          {/* add this session to a calendar */}
+          <div style={sx('display:flex;gap:8px;margin-top:10px;')}>
+            <button onClick={s.exportICS} style={sx("flex:1;border:2px solid #E3D6EC;border-radius:14px;background:#fff;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:11px;cursor:pointer;")}>📥 .ics</button>
+            {s.googleUrl && <a href={s.googleUrl} target="_blank" rel="noopener noreferrer" style={sx("flex:2;border:2px solid #E3D6EC;border-radius:14px;background:#fff;color:#6AAEF5;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:11px;cursor:pointer;text-align:center;text-decoration:none;")}>📆 เพิ่มลง Google Calendar</a>}
+          </div>
           <div style={sx("margin-top:18px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13px;color:#8A7C93;")}>รีแอคชัน · React</div>
           <div style={sx('display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;')}>
             {s.reactions.map((r, i) => <button key={'r' + i} onClick={r.onTap} style={sx(r.style)}><span style={sx('font-size:16px;')}>{r.emoji}</span> <span style={sx('font-weight:800;font-size:13px;')}>{r.count}</span></button>)}
@@ -634,6 +639,71 @@ export function SettingsSheet({ v }) {
         </div>
       </SheetShell>
     </>
+  )
+}
+
+export function ExportSheet({ v }) {
+  const f = v.feedUrls
+  return (
+    <>
+      {scrim(v.closeExport, 40)}
+      <SheetShell v={v} z={41} maxH="none" width={480} extra={v.desktop ? '' : 'padding-bottom:22px;'}>
+        <div style={sx('padding:14px 22px 4px;')}>
+          {grabber(v)}
+          <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
+            {sheetTitle('ส่งออก / ซิงก์ปฏิทิน 📅')}
+            {closeBtn(v.closeExport)}
+          </div>
+          <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:2px;')}>{v.exportPlanName} · {v.sessionCount} คาบ</div>
+        </div>
+        <div style={sx('padding:10px 20px 8px;')}>
+          <button onClick={v.exportPlanICS} style={sx(`width:100%;border:none;border-radius:18px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;box-shadow:0 10px 24px ${v.g.pcShadow};display:flex;align-items:center;justify-content:center;gap:8px;`)}>📥 ดาวน์โหลดไฟล์ .ics · Download</button>
+          <div style={sx('font-size:11px;font-weight:700;color:#C0A8CC;margin-top:7px;text-align:center;line-height:1.4;')}>เปิดไฟล์เพื่อเพิ่มลง Apple / Google / Outlook Calendar<br />Opens in any calendar app (one-time import)</div>
+
+          {f ? (
+            <>
+              <div style={sx('height:1px;background:#F1E8F5;margin:16px 0;')} />
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;color:#4A3F55;")}>🔗 ซิงก์แบบสด · Subscribe (live sync)</div>
+              <div style={sx('font-size:11.5px;font-weight:700;color:#B0A4BC;margin-top:2px;line-height:1.4;')}>อัปเดตอัตโนมัติเมื่อมีการจอง/เลื่อนคาบ · Auto-updates when sessions change</div>
+              <div style={sx('display:flex;gap:8px;margin-top:11px;')}>
+                <a href={f.webcal} style={sx("flex:1;border:none;border-radius:14px;background:#4A3F55;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:12px;cursor:pointer;text-align:center;text-decoration:none;")}> Apple Calendar</a>
+                <a href={f.google} target="_blank" rel="noopener noreferrer" style={sx("flex:1;border:none;border-radius:14px;background:#6AAEF5;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:12px;cursor:pointer;text-align:center;text-decoration:none;")}>📆 Google</a>
+              </div>
+              <div style={sx('display:flex;align-items:center;gap:8px;margin-top:9px;background:#F8F3FA;border-radius:12px;padding:9px 11px;')}>
+                <div style={sx('flex:1;min-width:0;font-size:11px;font-weight:700;color:#8A7C93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;')}>{f.httpUrl}</div>
+                <button onClick={() => { try { navigator.clipboard.writeText(f.httpUrl) } catch (e) {} v.copyFeed && v.copyFeed() }} style={sx(`border:none;border-radius:10px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11px;padding:7px 11px;cursor:pointer;flex:none;`)}>คัดลอก</button>
+              </div>
+            </>
+          ) : (
+            <div style={sx('margin-top:14px;background:#F8F3FA;border-radius:14px;padding:12px 14px;font-size:11.5px;font-weight:700;color:#8A7C93;line-height:1.5;text-align:center;')}>🔗 การซิงก์แบบสด (subscribe) ใช้ได้เมื่อเข้าสู่ระบบแบบคลาวด์<br />Live subscribe needs cloud sign-in</div>
+          )}
+
+          <div style={sx('height:1px;background:#F1E8F5;margin:16px 0;')} />
+          <button onClick={v.autoFillSchedule} style={sx(`width:100%;border:2px dashed ${v.g.pcBorder};border-radius:16px;background:${v.g.pcSoft};color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:13px;cursor:pointer;`)}>✨ เติมตารางให้อัตโนมัติ · Auto-fill schedule</button>
+        </div>
+      </SheetShell>
+    </>
+  )
+}
+
+export function DeleteConfirm({ v }) {
+  const leave = v.deleteIsLeave
+  return (
+    <div onClick={v.cancelDelete} style={sx('position:absolute;inset:0;z-index:48;background:rgba(74,63,85,.44);animation:ts-scrim .2s ease;display:flex;align-items:center;justify-content:center;padding:0 34px;')}>
+      <div onClick={v.stop} style={sx('width:100%;max-width:400px;background:#FFF8FB;border-radius:28px;padding:26px 22px 20px;box-shadow:0 22px 50px rgba(180,120,150,.35);animation:ts-pop .34s cubic-bezier(.34,1.56,.64,1) both;text-align:center;')}>
+        <div style={sx('font-size:48px;')}>{leave ? '👋' : '🗑️'}</div>
+        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:20px;color:#4A3F55;margin-top:8px;")}>{leave ? 'ออกจากแพลนนี้?' : 'ลบแพลนนี้?'}</div>
+        <div style={sx('font-size:13px;font-weight:700;color:#8A7C93;margin-top:6px;line-height:1.45;')}>
+          {leave
+            ? <>คุณจะออกจาก “{v.deletePlanName}” — แพลนยังอยู่กับเจ้าของและสมาชิกคนอื่น<br />You'll leave “{v.deletePlanName}”. It stays for the owner and other members.</>
+            : <>ลบ “{v.deletePlanName}” และคาบทั้งหมด {v.deleteSessionCount} คาบอย่างถาวร — เลิกทำไม่ได้<br />Permanently deletes “{v.deletePlanName}” and its {v.deleteSessionCount} sessions. This can't be undone.</>}
+        </div>
+        <div style={sx('display:flex;gap:10px;margin-top:20px;')}>
+          <button onClick={v.cancelDelete} style={sx("flex:1;border:none;border-radius:16px;background:#F1E8F5;color:#8A7C93;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;")}>ยกเลิก</button>
+          <button onClick={v.confirmDelete} style={sx(`flex:1.4;border:none;border-radius:16px;background:${leave ? '#8A7C93' : '#E06B85'};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:14px;cursor:pointer;box-shadow:0 10px 22px rgba(224,107,133,.32);`)}>{leave ? 'ออกจากแพลน · Leave' : 'ลบเลย · Delete'}</button>
+        </div>
+      </div>
+    </div>
   )
 }
 
