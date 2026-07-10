@@ -32,6 +32,9 @@ template galleries).
   checklist, and links**; days with context are marked on the grid. It syncs,
   travels with copied/published templates, and shows up in exported/subscribed
   calendars (per-day event notes)
+- 🖨️ **Thai ตารางเรียน PDF** — export a printable, Thai-styled class timetable:
+  a weekly day×time grid per page (multi-page), color-coded subjects, a legend,
+  Buddhist-year month, and per-day notes. Opens ready to Print / Save as PDF
 - 📅 **Export & sync to your calendar** — download an `.ics` (Apple / Google /
   Outlook), **subscribe to a live feed** that auto-updates (cloud), and per
   session "Add to Google Calendar" links

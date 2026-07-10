@@ -5,6 +5,7 @@ import { fmt } from './util.js'
 import { api, hasApi, probe, getToken, setToken } from './api.js'
 import { pushSupported, isSubscribed, enableReminders, disableReminders, sendTestReminder } from './push.js'
 import { planToICS, googleEventUrl, downloadICS } from './ics.js'
+import { openTimetablePrint } from './timetable.js'
 import { autoScheduleSessions } from './schedule.js'
 import { apiBase } from './api.js'
 import { AppShell } from './components/Chrome.jsx'
@@ -770,6 +771,11 @@ export default class App extends React.Component {
     downloadICS('tutorsync-session.ics', ics)
     this.showToast('📥', 'เพิ่มลงปฏิทินแล้ว · Added to calendar')
   }
+  exportTimetablePDF = () => {
+    const plan = this.activePlan(); if (!plan) return
+    const ok = openTimetablePrint(plan, this.state.year, this.state.month)
+    this.showToast(ok ? '🖨️' : '⚠️', ok ? 'เปิดตารางเรียน — พิมพ์หรือบันทึกเป็น PDF · Print or Save as PDF' : 'เปิดป็อปอัปไม่ได้ · Allow popups to export')
+  }
 
   likeMarket = () => {
     const id = this.state.selMarket
@@ -1411,7 +1417,7 @@ export default class App extends React.Component {
       deleteSessionCount: plan ? plan.sessions.length : 0,
       // export / sync calendar
       exportOpen: st.exportOpen, openExport: () => this.setState({ exportOpen: true }), closeExport: () => this.setState({ exportOpen: false }),
-      exportPlanICS: this.exportPlanICS, autoFillSchedule: this.autoFillSchedule,
+      exportPlanICS: this.exportPlanICS, autoFillSchedule: this.autoFillSchedule, exportTimetablePDF: this.exportTimetablePDF,
       copyFeed: () => this.showToast('🔗', 'คัดลอกลิงก์ปฏิทินแล้ว · Calendar link copied'),
       feedUrls: this.planFeedUrls(),
       exportPlanName: plan ? plan.name : '',

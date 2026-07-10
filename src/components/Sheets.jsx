@@ -707,8 +707,10 @@ export function ExportSheet({ v }) {
           <div style={sx('font-size:12.5px;font-weight:700;color:#B0A4BC;margin-top:2px;')}>{v.exportPlanName} · {v.sessionCount} คาบ</div>
         </div>
         <div style={sx('padding:10px 20px 8px;')}>
-          <button onClick={v.exportPlanICS} style={sx(`width:100%;border:none;border-radius:18px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;box-shadow:0 10px 24px ${v.g.pcShadow};display:flex;align-items:center;justify-content:center;gap:8px;`)}>📥 ดาวน์โหลดไฟล์ .ics · Download</button>
-          <div style={sx('font-size:11px;font-weight:700;color:#C0A8CC;margin-top:7px;text-align:center;line-height:1.4;')}>เปิดไฟล์เพื่อเพิ่มลง Apple / Google / Outlook Calendar<br />Opens in any calendar app (one-time import)</div>
+          <button onClick={v.exportTimetablePDF} style={sx(`width:100%;border:none;border-radius:18px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;box-shadow:0 10px 24px ${v.g.pcShadow};display:flex;align-items:center;justify-content:center;gap:8px;`)}>🖨️ ตารางเรียน PDF · Thai timetable</button>
+          <div style={sx('font-size:11px;font-weight:700;color:#C0A8CC;margin-top:7px;text-align:center;line-height:1.4;')}>ตารางเรียนสไตล์ไทย พิมพ์หรือบันทึกเป็น PDF (หลายหน้า)<br />Printable Thai class timetable — save as PDF</div>
+          <button onClick={v.exportPlanICS} style={sx(`width:100%;margin-top:11px;border:2px solid ${v.g.pcBorder};border-radius:16px;background:#fff;color:${v.g.pc};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;padding:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;`)}>📥 ดาวน์โหลดไฟล์ .ics · Calendar file</button>
+          <div style={sx('font-size:11px;font-weight:700;color:#C0A8CC;margin-top:6px;text-align:center;line-height:1.4;')}>เปิดไฟล์เพื่อเพิ่มลง Apple / Google / Outlook Calendar</div>
 
           {f ? (
             <>

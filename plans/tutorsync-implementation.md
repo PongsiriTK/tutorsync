@@ -174,6 +174,17 @@ shared collaboration was previously simulated).
       (persist across reload, calendar marker, copied template carries notes).
       27 server, 27 guest e2e, 3 cloud e2e green. Deployed jarvis + Netlify.
 
+### Phase 13 — Thai ตารางเรียน PDF export (2026-07-10)
+- [x] `src/timetable.js`: print-ready Thai HTML — cover (พ.ศ. month, stats),
+      legend, one weekly day×time grid per page (`.page-break` for pages 2+),
+      per-week day notes. Opens in a new window with a Print/Save-PDF button
+      (browser-rendered for correct Thai shaping; no jsPDF).
+- [x] Wired into the Export/Sync sheet ("🖨️ ตารางเรียน PDF"). Client-only,
+      guest + cloud.
+- [x] e2e (calendar project) catches the popup and asserts cover/legend/
+      multi-week grids. 27 guest + calendar, 5 desktop, 3 cloud, 27 server
+      green (in isolation). Deployed to Netlify (no backend change).
+
 - [ ] Still outstanding (next): live sockets instead of 20s polling, stable
       public hostname. Owner supplies the Resend key on jarvis for email
       (see DEPLOY.md).

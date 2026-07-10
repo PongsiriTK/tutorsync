@@ -28,7 +28,7 @@ test('download .ics from the calendar produces a valid calendar file', async ({ 
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    tap(page.getByText('📥 ดาวน์โหลดไฟล์ .ics · Download')),
+    tap(page.getByText('📥 ดาวน์โหลดไฟล์ .ics · Calendar file')),
   ])
   expect(download.suggestedFilename()).toMatch(/\.ics$/)
   const stream = await download.createReadStream()
@@ -88,6 +88,29 @@ test('copying a market template auto-schedules its calendar', async ({ page }) =
   await expect(page.getByText(/Copied & auto-scheduled/)).toBeVisible({ timeout: 8000 })
   // lands on the plan calendar WITH sessions (not empty)
   await expect(page.locator('[data-day][data-has="true"]').first()).toBeVisible()
+})
+
+test('export Thai ตารางเรียน opens a printable multi-week timetable', async ({ page, context }) => {
+  await seedSession(page)
+  await gotoApp(page)
+  await openPlan(page)
+
+  await tapCalendarAction(page, '📅 ส่งออก / ซิงก์ · Export / Sync')
+  await expect(page.getByText('ส่งออก / ซิงก์ปฏิทิน 📅')).toBeVisible()
+
+  const [popup] = await Promise.all([
+    context.waitForEvent('page'),
+    tap(page.getByText('🖨️ ตารางเรียน PDF · Thai timetable')),
+  ])
+  await popup.waitForLoadState('domcontentloaded')
+  expect(await popup.title()).toContain('ตารางเรียน')
+  // cover (Thai plan name) + Thai Buddhist-year month + legend
+  await expect(popup.getByText('ตารางเรียน · ติวสอบเข้ามหาลัย')).toBeVisible()
+  await expect(popup.getByText(/พ\.ศ\. \d{4}/)).toBeVisible()
+  // a weekly day×time grid with session subjects, and page-breaks for extra weeks
+  expect(await popup.locator('table.grid').count()).toBeGreaterThan(1)
+  await expect(popup.getByText('คณิตศาสตร์').first()).toBeVisible()
+  expect(await popup.locator('.week.page-break').count()).toBeGreaterThan(0)
 })
 
 test('day notes: description, checklist and link persist and mark the day', async ({ page }) => {

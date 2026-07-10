@@ -35,6 +35,15 @@ Sheets.jsx); the calendar cell shows 📝 (`cell.hasNote`, `data-note` attr).
 Day notes also flow into the ICS (`noteText` appended to that day's session
 events; an all-day VEVENT for note-only days).
 
+**Thai ตารางเรียน PDF:** `src/timetable.js` `buildTimetableHTML(plan, year,
+month)` returns a print-ready Thai HTML document (cover with พ.ศ. Buddhist
+year, legend, one weekly day×time `<table.grid>` per calendar week with
+`.page-break` for pages 2+, per-week day notes). `openTimetablePrint` opens it
+in a new window with a "Print / Save as PDF" button — rendered by the browser
+(NOT jsPDF) so Thai shaping is correct. No auto-`window.print()` (it blocks
+headless; the window's button prints). Client-only; works guest + cloud. E2e
+catches the popup via `context.waitForEvent('page')`.
+
 **Calendar export / sync:** `src/ics.js` (client) mirrors `server/src/ics.js`
 (`planToICS`, Bangkok→UTC, status→CONFIRMED/TENTATIVE/CANCELLED) — keep them in
 sync. Client `downloadICS` triggers an .ics download (guest + cloud);
