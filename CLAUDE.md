@@ -74,6 +74,21 @@ key. Client keys off `r.emailed && !r.demoCode` → `state.authEmailed` → Auth
 shows "check your email" vs the demo-code box. `TS_MAIL_FAKE=1` pretends to send
 (tests) — never set it on the e2e/run-cloud backend or the demo code vanishes.
 
+**Goal-completion celebration:** `saveSession` calls `milestoneFor(plan, subjKey,
+addHours, cost)` (on the plan BEFORE the add) which returns a payload if the new
+session crosses a category target or completes the whole plan (`hours` plans →
+hoursGoal; others → all category targets met). A milestone SUPERSEDES the Peloton
+`booked` confirmation (sets `celebrate`, `booked:null`); pending/tutor bookings
+never celebrate. `CelebrationSheet` (Sheets.jsx) = confetti (`ts-confetti`
+keyframe) + emoji + stat cards + Share. `shareCelebration` uses `navigator.share`
+(mobile) with a `clipboard.writeText` fallback; `saveCelebrationCard` →
+`openShareCard` (src/sharecard.js) opens a screenshot-ready window (same pattern
+as timetable.js). Entirely **client-side** — no server/activity-feed change (the
+server's notify allow-list intentionally does NOT include completion events).
+E2e: calendar.spec creates a plan, drops a category target to 1 (the target
+stepper now has `aria-label="Decrease target"`), books once → asserts `celebrate`
+testid + the card popup. Sheet has `data-testid="celebrate"`.
+
 **Activity / Notifications inbox:** header bell (`BellButton` in Chrome.jsx,
 both layouts) → `ActivitySheet` with **Requests** (pending sessions I can
 confirm across all shared plans, computed in the renderVals activity IIFE) +

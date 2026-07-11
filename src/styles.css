@@ -55,6 +55,7 @@ body {
 @keyframes ts-cardin { from{ transform: translateY(16px) scale(.97); opacity:0; } to{ transform: translateY(0) scale(1); opacity:1; } }
 @keyframes ts-shimmer { 0%{ background-position: -320px 0; } 100%{ background-position: 320px 0; } }
 @keyframes ts-pop { 0%{ transform: scale(.6); opacity:0; } 60%{ transform: scale(1.08); } 100%{ transform: scale(1); opacity:1; } }
+@keyframes ts-confetti { 0%{ transform: translateY(0) rotate(0); opacity:1; } 100%{ transform: translateY(760px) rotate(600deg); opacity:.9; } }
 
 button { font-family: inherit; }
 input { font-family: inherit; }

@@ -7,7 +7,7 @@ import { CalendarTab, GoalsTab, TeamTab, AiTab, AiDock } from './Tabs.jsx'
 import {
   DaySheet, SlotSheet, AddSheet, CreateSheet, MarketSheet, PlanEditSheet,
   EditTargetSheet, PublishSheet, SettingsSheet, MoveConfirm, ReschedSheet, BookedConfirm,
-  ExportSheet, DeleteConfirm, ActivitySheet,
+  ExportSheet, DeleteConfirm, ActivitySheet, CelebrationSheet,
 } from './Sheets.jsx'
 
 export function AppShell({ v }) {
@@ -31,6 +31,7 @@ function Overlays({ v }) {
       {v.slotOpen && <SlotSheet v={v} />}
       {v.addOpen && <AddSheet v={v} />}
       {v.booked && <BookedConfirm v={v} />}
+      {v.celebrate && <CelebrationSheet v={v} />}
       {v.createOpen && <CreateSheet v={v} />}
       {v.marketOpen && <MarketSheet v={v} />}
       {v.planEditOpen && <PlanEditSheet v={v} />}

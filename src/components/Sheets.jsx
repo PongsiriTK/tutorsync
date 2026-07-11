@@ -339,6 +339,46 @@ export function BookedConfirm({ v }) {
   )
 }
 
+export function CelebrationSheet({ v }) {
+  const c = v.celebrate
+  const accent = c.accent || v.g.pc
+  const accent2 = c.accent2 || v.g.pc2
+  const colors = [accent, accent2, '#FFD36E', '#6AAEF5', '#4FC7A8']
+  // deterministic confetti burst (index-based, so no re-render jitter)
+  const pieces = Array.from({ length: 22 }, (_, i) => ({
+    left: (i * 41) % 100, delay: ((i * 17) % 22) / 10, dur: 2.4 + ((i * 9) % 18) / 10, col: colors[i % colors.length],
+  }))
+  return (
+    <div data-testid="celebrate" onClick={v.closeCelebrate} style={sx('position:absolute;inset:0;z-index:48;background:rgba(74,63,85,.5);animation:ts-scrim .2s ease;display:flex;align-items:center;justify-content:center;padding:0 30px;overflow:hidden;')}>
+      <div style={sx('position:absolute;inset:0;pointer-events:none;overflow:hidden;')}>
+        {pieces.map((p, i) => (
+          <span key={i} style={sx(`position:absolute;top:-16px;left:${p.left}%;width:9px;height:13px;border-radius:2px;background:${p.col};opacity:.9;animation:ts-confetti 3s linear ${(-p.delay).toFixed(1)}s infinite;animation-duration:${p.dur}s;`)} />
+        ))}
+      </div>
+      <div onClick={v.stop} style={sx(`width:100%;max-width:410px;background:linear-gradient(165deg,#FFFFFF 0%,#FFF7FB 55%,#F6F0FF 100%);border-radius:30px;padding:28px 24px 22px;box-shadow:0 26px 60px rgba(150,110,160,.4);animation:ts-pop .42s cubic-bezier(.34,1.56,.64,1) both;text-align:center;position:relative;`)}>
+        <div style={sx(`font-size:12px;font-weight:800;letter-spacing:2px;color:${accent};font-family:'Baloo Thai 2',sans-serif;`)}>{c.kicker}</div>
+        <div style={sx('font-size:74px;line-height:1;margin:10px 0 6px;animation:ts-bob 2.6s ease-in-out infinite;filter:drop-shadow(0 10px 16px rgba(74,63,85,.2));')}>{c.emoji}</div>
+        <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:23px;color:#4A3F55;line-height:1.15;")}>{c.titleTh}</div>
+        <div style={sx('font-size:13.5px;font-weight:700;color:#8A7C93;margin-top:3px;')}>{c.titleEn}</div>
+        {c.planName ? <div style={sx(`display:inline-block;margin-top:12px;background:${accent}1f;color:${accent};font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13px;padding:6px 14px;border-radius:999px;`)}>📚 {c.planName}</div> : null}
+        <div style={sx('display:flex;gap:8px;margin-top:18px;')}>
+          {(c.stats || []).map((s, i) => (
+            <div key={i} style={sx('flex:1;background:#ffffff;border:1px solid #F0E9F5;border-radius:16px;padding:12px 6px;box-shadow:0 6px 14px rgba(74,63,85,.05);')}>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:19px;color:#4A3F55;")}>{s.value}</div>
+              <div style={sx('font-size:10.5px;font-weight:700;color:#A99FB2;margin-top:2px;')}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={v.shareCelebration} style={sx(`width:100%;margin-top:20px;border:none;border-radius:16px;background:${accent};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:15px;padding:15px;cursor:pointer;box-shadow:0 12px 26px ${accent}66;`)}>{v.canNativeShare ? '🎉 แชร์ความสำเร็จ · Share' : '🎉 แชร์ · Copy to share'}</button>
+        <div style={sx('display:flex;gap:9px;margin-top:9px;')}>
+          <button onClick={v.saveCelebrationCard} style={sx("flex:1;border:none;border-radius:15px;background:#F1E8F5;color:#7A6C86;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:13px;cursor:pointer;")}>🖼️ บันทึกการ์ด · Card</button>
+          <button onClick={v.closeCelebrate} style={sx("flex:1;border:none;border-radius:15px;background:#F1E8F5;color:#7A6C86;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:13.5px;padding:13px;cursor:pointer;")}>เยี่ยม! · Done</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CreateSheet({ v }) {
   return (
     <>
@@ -557,9 +597,9 @@ export function PlanEditSheet({ v }) {
                   <div style={sx('flex:1;')}>
                     <div style={sx('font-size:10.5px;font-weight:800;color:#B0A4BC;margin-bottom:5px;')}>เป้าคาบ · Target</div>
                     <div style={sx('display:flex;align-items:center;gap:8px;background:#F8F3FA;border-radius:12px;padding:6px 10px;')}>
-                      <button onClick={c.targetDown} style={sx('width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;')}>−</button>
+                      <button onClick={c.targetDown} aria-label="Decrease target" style={sx('width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;')}>−</button>
                       <div style={sx("flex:1;text-align:center;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:14px;color:#4A3F55;")}>{c.target}</div>
-                      <button onClick={c.targetUp} style={sx('width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;')}>＋</button>
+                      <button onClick={c.targetUp} aria-label="Increase target" style={sx('width:26px;height:26px;border:none;border-radius:9px;background:#fff;color:#8A7C93;font-size:16px;font-weight:800;cursor:pointer;')}>＋</button>
                     </div>
                   </div>
                 </div>

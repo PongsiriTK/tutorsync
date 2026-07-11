@@ -200,6 +200,45 @@ test('activity inbox: bell badge + local feed of your actions, clears on open', 
   await expect(page.locator('button[aria-label="Notifications"] span')).toHaveCount(0)
 })
 
+test('goal-completion celebration: booking the final session fires confetti + share card', async ({ page, context }) => {
+  await seedSession(page)
+  await gotoApp(page)
+  await waitForPlans(page)
+
+  // fresh scratch plan (one MAIN category). Lower its target so a single booking
+  // completes the whole plan and crosses the milestone.
+  await tap(page.locator('button[aria-label="New goal"]'))
+  await page.fill('input[placeholder*="ติวสอบเข้ามหาลัย"]', 'ใกล้ถึงเป้า')
+  await tap(page.getByText('สร้างเป้าหมาย · Create goal ✨'))
+  await tap(page.getByText('เป้าหมาย', { exact: true }).last())
+  await tap(page.getByText('แก้ไข', { exact: true }))
+  const dec = page.getByRole('button', { name: 'Decrease target' })
+  for (let i = 0; i < 15; i++) await dec.click({ force: true }) // clamps at 1
+  await tap(page.getByText('บันทึกการตั้งค่า · Save changes ✨'))
+
+  // book the final session → milestone celebration instead of the plain confirmation
+  await tap(page.locator('button[aria-label="Add session"]'))
+  await tap(page.getByText('บันทึกคาบ · Book session 🎉'))
+
+  const cheer = page.getByTestId('celebrate')
+  await expect(cheer).toBeVisible()
+  await expect(page.getByText('ทำสำเร็จทั้งแพลน!')).toBeVisible() // plan-complete headline
+  await expect(page.getByText('PLAN COMPLETE')).toBeVisible()
+
+  // the visual share card opens in a screenshot-ready window
+  const [card] = await Promise.all([
+    context.waitForEvent('page'),
+    tap(page.getByText(/บันทึกการ์ด · Card/)),
+  ])
+  await card.waitForLoadState('domcontentloaded')
+  expect(await card.title()).toContain('TutorSync')
+  await expect(card.getByText('ใกล้ถึงเป้า')).toBeVisible() // plan name on the card
+
+  // dismiss → back to the app
+  await tap(page.getByText(/เยี่ยม! · Done/))
+  await expect(cheer).toHaveCount(0)
+})
+
 test('delete plan asks for confirmation before deleting', async ({ page }) => {
   await seedSession(page)
   await gotoApp(page)

@@ -45,6 +45,10 @@ template galleries).
   (auto-scheduled) to your plans, publish your own
 - 🗑️ **Safe delete** — deleting a plan asks to confirm; on a shared plan a
   non-owner "leaves" instead of deleting it for everyone
+- 🎉 **Goal-completion celebration** — booking the session that reaches a
+  category's target (or completes the whole plan) fires a confetti moment with
+  the achievement, stat cards, and **share**: a native share sheet (LINE / IG /
+  etc.) with a clipboard fallback, plus a screenshot-ready **achievement card**
 - 🔔 **Activity / Notifications inbox** — a header bell (with unread badge)
   opening a unified feed: **Requests** (pending confirmations, with inline
   Confirm) and **Updates** (bookings, confirmations, reactions, comments,

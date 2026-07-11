@@ -200,9 +200,19 @@ inbox instead of scattered toasts.
       (cloud, switched waits to 'load' — polling app never hits networkidle).
       28 server, 29 guest e2e, 3 cloud e2e green. Deployed jarvis + Netlify.
 
-- [ ] Next Mobbin ideas (researched): goal-completion celebration + share card,
-      "Today" home aggregation, post-booking add-to-calendar. Also outstanding:
-      live sockets vs polling, stable public hostname, Resend key on jarvis.
+### Phase 15 — Goal-completion celebration + share card (2026-07-11, Mobbin #2)
+Mobbin patterns (Duolingo brag cards, Opal "You did it!", Waterllama confetti).
+- [x] `milestoneFor` detects category-target / whole-plan completion on booking;
+      celebration supersedes the booked confirmation (pending never celebrates).
+- [x] `CelebrationSheet` (confetti + stats), `shareCelebration` (native share /
+      clipboard), `saveCelebrationCard` → `openShareCard` (src/sharecard.js).
+      Client-only — no backend change.
+- [x] e2e: create plan → drop category target to 1 → book → celebration + card
+      popup. 30 guest e2e green (28 server + 3 cloud unaffected). Deployed Netlify.
+
+- [ ] Next Mobbin ideas (researched): "Today" home aggregation, post-booking
+      add-to-calendar. Also outstanding: live sockets vs polling, stable public
+      hostname, Resend key on jarvis.
 
 ## Validation
 

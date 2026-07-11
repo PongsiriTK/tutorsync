@@ -6,6 +6,7 @@ import { api, hasApi, probe, getToken, setToken } from './api.js'
 import { pushSupported, isSubscribed, enableReminders, disableReminders, sendTestReminder } from './push.js'
 import { planToICS, googleEventUrl, downloadICS } from './ics.js'
 import { openTimetablePrint } from './timetable.js'
+import { openShareCard } from './sharecard.js'
 import { autoScheduleSessions } from './schedule.js'
 import { apiBase } from './api.js'
 import { AppShell } from './components/Chrome.jsx'
@@ -60,6 +61,7 @@ export default class App extends React.Component {
     reschedOpen: false, reschedId: null, reschedMode: 'move',
     publishOpen: false,
     booked: null,
+    celebrate: null, // { level, emoji, kicker, titleTh, titleEn, sub, planName, accent, accent2, stats, shareText }
     chatInput: '', commentDraft: '',
     messages: [{ id: 1, isAi: true, text: 'สวัสดีค่ะ! 👋 หนูช่วยดูแลทุกเป้าหมายของคุณได้เลย — ถามเรื่องงบ ชั่วโมง หรือให้จัดคาบให้ก็ได้นะคะ!' }],
     aiThinking: false,
@@ -537,6 +539,9 @@ export default class App extends React.Component {
     const cost = catCost(subj, st.addHours)
     const fit = plan.kind === 'fitness' ? { sets: st.addSets, reps: st.addReps, intensity: st.addIntensity } : {}
     const pending = this.planHasTutor(plan)
+    // A confirmed booking may cross a milestone (category target / whole plan).
+    // Pending bookings aren't an achievement yet, so skip the celebration.
+    const milestone = pending ? null : this.milestoneFor(plan, subjKey, st.addHours, cost)
     let newId = null
     this.setState((s) => {
       const plans = s.plans.map((p) => {
@@ -545,10 +550,88 @@ export default class App extends React.Component {
         newId = nid
         return { ...p, sessions: [...p.sessions, { id: nid, day: st.addDate, subj: subjKey, time: st.addTime, hours: st.addHours, cost, done: false, status: pending ? 'pending' : 'confirmed', reactions: {}, comments: [], ...fit }] }
       })
-      // Peloton-style confirmation instead of toast-only feedback
-      return { plans, addOpen: false, dayOpen: false, booked: { subjKey, day: st.addDate, time: st.addTime, hours: st.addHours, cost, pending } }
+      // A milestone celebration supersedes the ordinary booking confirmation.
+      return milestone
+        ? { plans, addOpen: false, dayOpen: false, booked: null, celebrate: milestone }
+        : { plans, addOpen: false, dayOpen: false, booked: { subjKey, day: st.addDate, time: st.addTime, hours: st.addHours, cost, pending } }
     })
     this.recordActivity('booked', newId, pending) // loud (push) only when a tutor must confirm
+  }
+
+  // Given the plan BEFORE adding a session, return a celebration payload if the
+  // new session crosses a category target or completes the whole plan, else null.
+  milestoneFor(plan, subjKey, addHours, addCost) {
+    if (!plan || !plan.categories) return null
+    const sess = plan.sessions || []
+    const cats = plan.categories
+    const countOf = (k) => sess.filter((s) => s.subj === k).length
+    const catDone = (k, extra) => { const c = cats[k]; return c && (countOf(k) + (k === subjKey ? extra : 0)) >= (c.target || 0) }
+    const allCatsDone = (extra) => Object.keys(cats).every((k) => catDone(k, extra))
+    const hoursNow = sess.reduce((a, s) => a + (s.hours || 0), 0)
+    const planDone = (booked) => plan.goalType === 'hours'
+      ? !!plan.hoursGoal && (hoursNow + (booked ? addHours : 0)) >= plan.hoursGoal
+      : allCatsDone(booked ? 1 : 0)
+
+    const cat = cats[subjKey]
+    const catBefore = cat ? catDone(subjKey, 0) : true
+    const catAfter = cat ? catDone(subjKey, 1) : true
+    const planBefore = planDone(false)
+    const planAfter = planDone(true)
+
+    const spent = sess.reduce((a, s) => a + (s.cost || 0), 0) + (addCost || 0)
+    const hours = hoursNow + addHours
+    const count = sess.length + 1
+    const t = this.planTheme(plan)
+
+    if (planAfter && !planBefore) {
+      return {
+        level: 'plan', emoji: '🏆', kicker: 'PLAN COMPLETE',
+        titleTh: 'ทำสำเร็จทั้งแพลน!', titleEn: 'You completed the whole plan!',
+        sub: plan.name, planName: plan.name, accent: t.pc, accent2: t.pc2 || '#B18AF0',
+        stats: [
+          { label: 'คาบ · Sessions', value: String(count) },
+          { label: 'ชั่วโมง · Hours', value: String(hours) },
+          { label: 'ลงทุน · Spent', value: '฿' + fmt(spent) },
+        ],
+        shareText: `🏆 ฉันทำสำเร็จทั้งแพลน "${plan.name}" บน TutorSync แล้ว! ${count} คาบ · ${hours} ชม. 🎉`,
+      }
+    }
+    if (catAfter && !catBefore) {
+      const c = cat
+      return {
+        level: 'category', emoji: '🎉', kicker: 'GOAL REACHED',
+        titleTh: 'เรียนครบเป้า ' + c.th + '!', titleEn: 'Finished all your ' + c.en + ' sessions!',
+        sub: (c.target) + '/' + (c.target) + ' คาบ', planName: plan.name, accent: c.color, accent2: t.pc2 || '#B18AF0',
+        stats: [
+          { label: 'คาบ · Sessions', value: (c.target) + '/' + (c.target) },
+          { label: 'ชั่วโมง · Hours', value: String(hours) },
+          { label: 'วิชา · Subject', value: c.short || c.en },
+        ],
+        shareText: `🎉 ฉันเรียนครบเป้า ${c.th} ในแพลน "${plan.name}" บน TutorSync แล้ว!`,
+      }
+    }
+    return null
+  }
+
+  closeCelebrate = () => this.setState({ celebrate: null })
+
+  // Native share (mobile → LINE/IG/etc.) with a clipboard fallback on desktop.
+  shareCelebration = async () => {
+    const c = this.state.celebrate; if (!c) return
+    const url = (typeof location !== 'undefined' && location.origin) ? location.origin : 'https://tutorsync-app.netlify.app'
+    const text = c.shareText + ' ' + url
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try { await navigator.share({ title: 'TutorSync', text }); return } catch (e) { if (e && e.name === 'AbortError') return }
+    }
+    try { await navigator.clipboard.writeText(text); this.showToast('📋', 'คัดลอกข้อความแล้ว · Copied to share') }
+    catch (e) { this.showToast('🔗', 'แชร์ความสำเร็จของคุณ · Share your win') }
+  }
+
+  // Open a screenshot-ready visual card in a new window.
+  saveCelebrationCard = () => {
+    const c = this.state.celebrate; if (!c) return
+    const ok = openShareCard(c)
+    if (!ok) this.showToast('😕', 'เปิดการ์ดไม่สำเร็จ · Pop-up blocked')
   }
   // fire a "loud" confirmation-loop notification (pushes to other members)
   notifyPlan(event, sessionId) { this.recordActivity(event, sessionId, true) }
@@ -1577,6 +1660,9 @@ export default class App extends React.Component {
       incSets: () => this.setState((s) => ({ addSets: Math.min(10, s.addSets + 1) })), decSets: () => this.setState((s) => ({ addSets: Math.max(1, s.addSets - 1) })),
       incReps: () => this.setState((s) => ({ addReps: Math.min(30, s.addReps + 1) })), decReps: () => this.setState((s) => ({ addReps: Math.max(1, s.addReps - 1) })),
       booked, closeBooked: this.closeBooked, viewBookedDay: this.viewBookedDay,
+      celebrate: st.celebrate, closeCelebrate: this.closeCelebrate,
+      shareCelebration: this.shareCelebration, saveCelebrationCard: this.saveCelebrationCard,
+      canNativeShare: typeof navigator !== 'undefined' && !!navigator.share,
       createOpen: st.createOpen, closeCreate: () => this.setState({ createOpen: false }),
       templates, ngName: ng.name, setNgName: (e) => this.setState((s) => ({ newGoal: { ...s.newGoal, name: e.target.value } })),
       goalTypeCards, targetLabel, targetOptions, createThemes, createEmojis, createPlan: this.createPlan,
