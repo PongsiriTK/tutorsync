@@ -228,6 +228,40 @@ test('calendar feed: /state exposes a feed token; public .ics feed serves the pl
   expect(bad.status).toBe(404)
 })
 
+test('activity feed: records events, counts unread from others, seen clears it', async () => {
+  const owner = await signIn('actown@test.dev')
+  const [, st] = await json(await call('/state', { headers: authed(owner) }))
+  const pid = st.plans[0].id
+  const [, inv] = await json(await call('/plans/' + pid + '/invite', { method: 'POST', headers: authed(owner) }))
+  const tutor = await signIn('acttutor@test.dev')
+  await call('/invites/' + inv.token + '/accept', { method: 'POST', headers: authed(tutor) })
+
+  // owner's feed: the tutor joining is an event by someone else → unread 1
+  let [, of] = await json(await call('/activity', { headers: authed(owner) }))
+  expect(of.activity.some((a) => a.type === 'joined')).toBe(true)
+  expect(of.unread).toBeGreaterThanOrEqual(1)
+
+  // tutor confirms a (fake) session → owner gets a 'confirmed' activity
+  await call('/plans/' + pid + '/notify', { method: 'POST', headers: authed(tutor), body: { event: 'confirmed', sessionId: 5 } })
+  ;[, of] = await json(await call('/activity', { headers: authed(owner) }))
+  const conf = of.activity.find((a) => a.type === 'confirmed')
+  expect(conf).toBeTruthy()
+  expect(conf.mine).toBe(false)
+  expect(conf.actorName).toBe('acttutor') // resolved from email
+  expect(of.unread).toBeGreaterThanOrEqual(2)
+
+  // marking seen clears unread
+  await call('/activity/seen', { method: 'POST', headers: authed(owner) })
+  ;[, of] = await json(await call('/activity', { headers: authed(owner) }))
+  expect(of.unread).toBe(0)
+
+  // a silent event records but does not push
+  const [rs, rec] = await json(await call('/plans/' + pid + '/notify', { method: 'POST', headers: authed(owner), body: { event: 'reacted', sessionId: 5, silent: true } }))
+  expect(rs).toBe(200); expect(rec.recorded).toBe(true); expect(rec.sent).toBe(0)
+  const [, tf] = await json(await call('/activity', { headers: authed(tutor) }))
+  expect(tf.activity.some((a) => a.type === 'reacted')).toBe(true)
+})
+
 test('push endpoints require auth', async () => {
   const [s1] = await json(await call('/push/subscribe', { method: 'POST', body: { subscription: {} } }))
   expect(s1).toBe(401)

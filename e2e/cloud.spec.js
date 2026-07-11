@@ -11,7 +11,7 @@ async function signInFresh(page, email) {
   // Playwright gives each test/context fresh storage — no manual clear needed
   // (and clearing via addInitScript would wipe the token on later navigations).
   await page.goto('/')
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('load')
   await expect(page.getByText('Sign in to TutorSync')).toBeVisible({ timeout: 15000 })
   await page.fill('input[type="email"]', email)
   await tap(page.getByText('Send code'))
@@ -46,7 +46,7 @@ test('real account: OTP sign-in loads server-seeded plans; a booking survives re
 
   // reload → same account, booking persisted server-side (no localStorage seed)
   await page.reload()
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('load')
   await expect(page.getByText('University Entrance Prep')).toBeVisible({ timeout: 15000 })
 })
 
@@ -77,7 +77,7 @@ test('real invite: owner shares a plan; invitee joins and sees the same sessions
   await signInFresh(guest, guestEmail)
   const path = inviteUrl.slice(inviteUrl.indexOf('/?invite='))
   await guest.goto(path)
-  await guest.waitForLoadState('networkidle')
+  await guest.waitForLoadState('load')
   await expect(guest.getByText('เข้าร่วมแพลนที่แชร์แล้ว · Joined shared plan!')).toBeVisible({ timeout: 15000 })
 
   // guest is now viewing the shared plan calendar
@@ -106,11 +106,11 @@ test('tutor-side confirmation loop: pending → tutor confirms → owner sees co
   // tutor joins via the invite link
   await signInFresh(tutor, tutorEmail)
   await tutor.goto(inviteUrl.slice(inviteUrl.indexOf('/?invite=')))
-  await tutor.waitForLoadState('networkidle')
+  await tutor.waitForLoadState('load')
   await expect(tutor.getByText('เข้าร่วมแพลนที่แชร์แล้ว · Joined shared plan!')).toBeVisible({ timeout: 15000 })
 
   // owner reloads so the client sees the new member, then books → PENDING (tutor exists)
-  await owner.reload(); await owner.waitForLoadState('networkidle')
+  await owner.reload(); await owner.waitForLoadState('load')
   await tap(owner.getByText('University Entrance Prep'))
   await tap(owner.locator('button[aria-label="Add session"]'))
   await tap(owner.getByText('บันทึกคาบ · Book session 🎉'))
@@ -122,7 +122,7 @@ test('tutor-side confirmation loop: pending → tutor confirms → owner sees co
   // tutor → opens the SHARED plan (badged 🔗 แชร์, distinct from their own seeded
   // copy) and confirms the request from the inbox (reload-retry for sync lag)
   const openTutorInbox = async () => {
-    await tutor.reload(); await tutor.waitForLoadState('networkidle')
+    await tutor.reload(); await tutor.waitForLoadState('load')
     await tap(tutor.locator('button', { hasText: 'University Entrance Prep' }).filter({ hasText: 'แชร์' }))
     await tap(tutor.getByText('ทีม', { exact: true }))
   }
@@ -135,12 +135,20 @@ test('tutor-side confirmation loop: pending → tutor confirms → owner sees co
   await tutor.waitForTimeout(2000) // sync the confirmed status back
 
   // owner reloads → the session is now confirmed (no pending pill on that day)
-  await owner.reload(); await owner.waitForLoadState('networkidle')
+  await owner.reload(); await owner.waitForLoadState('load')
   await tap(owner.getByText('University Entrance Prep'))
   const today = await owner.evaluate(() => new Date().getDate()) // booking defaults to today
   await owner.locator(`[data-day="${today}"]`).click({ force: true })
   await expect(owner.getByText(/เพิ่มคาบ · Add session/)).toBeVisible({ timeout: 10000 }) // day sheet open
   await expect(owner.getByText(/⏳ รอยืนยัน/)).toHaveCount(0)
+
+  // the owner's Activity inbox surfaces the tutor's actions (joined + confirmed)
+  await owner.keyboard.press('Escape')
+  await owner.mouse.click(250, 60) // dismiss the day sheet
+  await tap(owner.locator('button[aria-label="Notifications"]').first())
+  await expect(owner.getByText('การแจ้งเตือน · Activity')).toBeVisible()
+  await expect(owner.getByText(/ยืนยันคาบ/)).toBeVisible({ timeout: 10000 }) // "<tutor> confirmed …"
+  await expect(owner.getByText(/เข้าร่วมแพลน/)).toBeVisible() // "<tutor> joined the plan"
 
   await ownerCtx.close(); await tutorCtx.close()
 })

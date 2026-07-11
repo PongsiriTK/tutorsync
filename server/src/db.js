@@ -70,6 +70,18 @@ db.exec(`
     sent_at INTEGER NOT NULL
   );
 
+  -- append-only activity feed for the notifications inbox
+  CREATE TABLE IF NOT EXISTS activity (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id    TEXT NOT NULL,
+    actor      TEXT NOT NULL,
+    type       TEXT NOT NULL,
+    session_id TEXT,
+    label      TEXT,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_activity_plan ON activity(plan_id, created_at);
+
   CREATE TABLE IF NOT EXISTS market (
     id          TEXT PRIMARY KEY,
     doc         TEXT NOT NULL,
@@ -84,6 +96,7 @@ db.exec(`
 // forward-migrate DBs created before a column existed (SQLite lacks ADD COLUMN IF NOT EXISTS)
 for (const [table, col, def] of [
   ['users', 'onboarded', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'activity_seen_at', 'INTEGER NOT NULL DEFAULT 0'],
   ['plans', 'feed_token', 'TEXT'],
 ]) {
   const has = db.query(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)

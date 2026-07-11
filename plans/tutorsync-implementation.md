@@ -185,9 +185,24 @@ shared collaboration was previously simulated).
       multi-week grids. 27 guest + calendar, 5 desktop, 3 cloud, 27 server
       green (in isolation). Deployed to Netlify (no backend change).
 
-- [ ] Still outstanding (next): live sockets instead of 20s polling, stable
-      public hostname. Owner supplies the Resend key on jarvis for email
-      (see DEPLOY.md).
+### Phase 14 — Activity / Notifications inbox (2026-07-11, Mobbin-informed)
+Mobbin research (Insight Timer / MS Teams / Slack activity feeds) → a unified
+inbox instead of scattered toasts.
+- [x] Server `activity` table + `users.activity_seen_at`; record events in
+      `/plans/:id/notify` (new `silent` flag = record-only) + on invite accept
+      ('joined'); `GET /activity` (feed + unread), `POST /activity/seen`. Tests.
+- [x] Client: header bell + unread badge (both layouts); Activity sheet with
+      Requests (inline Confirm across shared plans) + Updates feed.
+      `recordActivity` → cloud notify / guest local log (persisted);
+      `refreshActivity` on load + poll. Bug fixed: guard on `getToken()` not
+      `state.authed` (setState flush timing).
+- [x] e2e: guest badge/feed (calendar), cloud two-account confirm→owner inbox
+      (cloud, switched waits to 'load' — polling app never hits networkidle).
+      28 server, 29 guest e2e, 3 cloud e2e green. Deployed jarvis + Netlify.
+
+- [ ] Next Mobbin ideas (researched): goal-completion celebration + share card,
+      "Today" home aggregation, post-booking add-to-calendar. Also outstanding:
+      live sockets vs polling, stable public hostname, Resend key on jarvis.
 
 ## Validation
 

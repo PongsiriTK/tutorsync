@@ -7,7 +7,7 @@ import { CalendarTab, GoalsTab, TeamTab, AiTab, AiDock } from './Tabs.jsx'
 import {
   DaySheet, SlotSheet, AddSheet, CreateSheet, MarketSheet, PlanEditSheet,
   EditTargetSheet, PublishSheet, SettingsSheet, MoveConfirm, ReschedSheet, BookedConfirm,
-  ExportSheet, DeleteConfirm,
+  ExportSheet, DeleteConfirm, ActivitySheet,
 } from './Sheets.jsx'
 
 export function AppShell({ v }) {
@@ -21,6 +21,7 @@ function Overlays({ v }) {
       {v.reschedOpen && <ReschedSheet v={v} />}
       {v.exportOpen && <ExportSheet v={v} />}
       {v.deleteConfirmOpen && <DeleteConfirm v={v} />}
+      {v.activityOpen && <ActivitySheet v={v} />}
       {v.toast && (
         <div style={sx(`position:absolute;top:${v.desktop ? '30px' : '96px'};left:50%;z-index:40;background:#4A3F55;color:#fff;border-radius:18px;padding:11px 18px;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13.5px;box-shadow:0 12px 30px rgba(74,63,85,.4);display:flex;align-items:center;gap:8px;white-space:nowrap;animation:ts-toast 2.8s ease forwards;`)}>
           <span style={sx('font-size:18px;')}>{v.toast.emoji}</span>{v.toast.text}
@@ -113,11 +114,23 @@ function Header({ v }) {
         </div>
         <div style={sx('display:flex;align-items:center;gap:10px;flex:none;')}>
           <PresenceRow v={v} />
+          <BellButton v={v} />
           <SettingsButton v={v} />
         </div>
       </div>
       <div style={sx('font-size:11.5px;font-weight:700;color:#C0A8CC;margin-top:6px;padding-left:2px;')}>{v.viewingText}</div>
     </div>
+  )
+}
+
+function BellButton({ v }) {
+  return (
+    <button onClick={v.openActivity} aria-label="Notifications" style={sx('position:relative;width:36px;height:36px;border:none;border-radius:14px;background:rgba(255,255,255,.8);cursor:pointer;box-shadow:0 4px 10px rgba(180,120,150,.12);display:flex;align-items:center;justify-content:center;flex:none;')}>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A7C93" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+      {v.activityUnread > 0 && (
+        <span style={sx(`position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:${v.g.pc};color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:10px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;`)}>{v.activityUnread > 9 ? '9+' : v.activityUnread}</span>
+      )}
+    </button>
   )
 }
 
@@ -255,6 +268,7 @@ function DesktopHeader({ v }) {
         <div style={sx('display:flex;align-items:center;gap:14px;flex:none;')}>
           <div style={sx('font-size:12px;font-weight:700;color:#C0A8CC;')}>{v.viewingText}</div>
           <PresenceRow v={v} />
+          <BellButton v={v} />
         </div>
       </div>
     </div>

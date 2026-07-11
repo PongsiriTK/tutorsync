@@ -195,6 +195,9 @@ export const app = new Elysia()
       if (!isMember(inv.plan_id, email)) {
         db.query('INSERT INTO plan_members (plan_id, email, role, joined_at) VALUES (?, ?, ?, ?)')
           .run(inv.plan_id, email, 'member', now())
+        const u = db.query('SELECT name FROM users WHERE email = ?').get(email)
+        db.query('INSERT INTO activity (plan_id, actor, type, session_id, label, created_at) VALUES (?, ?, ?, NULL, ?, ?)')
+          .run(inv.plan_id, email, 'joined', (u && u.name) || email.split('@')[0], now())
       }
       return { plan: { ...parsePlan(plan), _role: plan.owner === email ? 'owner' : 'member', _shared: plan.owner !== email, _members: membersOf(plan.id), _feedToken: ensureFeedToken(plan.id) } }
     })
@@ -233,6 +236,12 @@ export const app = new Elysia()
       const cat = s && doc.categories ? doc.categories[s.subj] : null
       const what = cat ? `${cat.th} · ${cat.en}` : (doc.name || 'คาบเรียน')
       const when = s ? ` (วันที่ ${s.day} · ${s.time})` : ''
+      const ALLOWED = new Set(['booked', 'confirmed', 'declined', 'proposed', 'accepted', 'reacted', 'commented', 'rescheduled'])
+      if (!ALLOWED.has(body.event)) { set.status = 400; return { error: 'bad_event' } }
+      // record every event in the activity feed
+      db.query('INSERT INTO activity (plan_id, actor, type, session_id, label, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(id, email, body.event, body.sessionId != null ? String(body.sessionId) : null, what, now())
+      // push only the loud confirmation-loop events (and never when silent)
       const T = {
         booked:    { title: 'คำขอจองคาบใหม่ 📩', body: `${what}${when} — โปรดยืนยัน · New session request in ${doc.name}` },
         confirmed: { title: 'ยืนยันคาบแล้ว ✅', body: `${what}${when} · A session was confirmed in ${doc.name}` },
@@ -240,12 +249,32 @@ export const app = new Elysia()
         proposed:  { title: 'เสนอเลื่อนวัน 🗓️', body: `${what} — ${doc.name} · A reschedule was proposed` },
         accepted:  { title: 'ยอมรับการเลื่อนแล้ว 👍', body: `${what}${when} · Your proposal was accepted in ${doc.name}` },
       }[body.event]
-      if (!T) { set.status = 400; return { error: 'bad_event' } }
       const recipients = membersOf(id).map((m) => m.email).filter((e) => e !== email)
       let sent = 0
-      for (const r of recipients) sent += await sendToUser(r, { ...T, tag: `notify-${id}-${body.event}`, url: '/' })
-      return { recipients: recipients.length, sent }
-    }, { body: t.Object({ event: t.String(), sessionId: t.Optional(t.Any()) }) })
+      if (T && !body.silent) for (const r of recipients) sent += await sendToUser(r, { ...T, tag: `notify-${id}-${body.event}`, url: '/' })
+      return { recipients: recipients.length, sent, recorded: true }
+    }, { body: t.Object({ event: t.String(), sessionId: t.Optional(t.Any()), silent: t.Optional(t.Boolean()) }) })
+
+    // notifications inbox feed (across all my plans) + unread count
+    .get('/activity', ({ email }) => {
+      const rows = db.query(`
+        SELECT a.* FROM activity a
+        JOIN plan_members m ON m.plan_id = a.plan_id AND m.email = ?
+        ORDER BY a.created_at DESC LIMIT 60
+      `).all(email)
+      const planName = {}, actorName = {}
+      const nameOf = (e) => { if (actorName[e] === undefined) { const u = db.query('SELECT name FROM users WHERE email = ?').get(e); actorName[e] = (u && u.name) || e.split('@')[0] } return actorName[e] }
+      const pNameOf = (pid) => { if (planName[pid] === undefined) { const p = db.query('SELECT doc FROM plans WHERE id = ?').get(pid); try { planName[pid] = p ? JSON.parse(p.doc).name : '' } catch { planName[pid] = '' } } return planName[pid] }
+      const seen = (db.query('SELECT activity_seen_at FROM users WHERE email = ?').get(email) || {}).activity_seen_at || 0
+      const activity = rows.map((r) => ({ id: r.id, planId: r.plan_id, planName: pNameOf(r.plan_id), type: r.type, actor: r.actor, actorName: nameOf(r.actor), label: r.label, sessionId: r.session_id, createdAt: r.created_at, mine: r.actor === email }))
+      const unread = activity.filter((a) => !a.mine && a.createdAt > seen).length
+      return { activity, unread }
+    })
+
+    .post('/activity/seen', ({ email }) => {
+      db.query('UPDATE users SET activity_seen_at = ? WHERE email = ?').run(now(), email)
+      return { ok: true }
+    })
 
     // ----- push reminders -----
     .get('/push/key', () => ({ key: vapidPublicKey }))

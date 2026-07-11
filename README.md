@@ -45,6 +45,11 @@ template galleries).
   (auto-scheduled) to your plans, publish your own
 - 🗑️ **Safe delete** — deleting a plan asks to confirm; on a shared plan a
   non-owner "leaves" instead of deleting it for everyone
+- 🔔 **Activity / Notifications inbox** — a header bell (with unread badge)
+  opening a unified feed: **Requests** (pending confirmations, with inline
+  Confirm) and **Updates** (bookings, confirmations, reactions, comments,
+  reschedules, joins). Server-backed across shared plans in cloud; a local
+  feed in guest. Consolidates events that were only fleeting toasts before
 - 🤝 **Team view** — instructors, rates, presence, invite link; **assign any
   category to a teammate** ("Taught by" picker in plan settings — e.g. hand
   English to Ms. Lisa and she joins the team, legend and session details)

@@ -74,6 +74,21 @@ key. Client keys off `r.emailed && !r.demoCode` → `state.authEmailed` → Auth
 shows "check your email" vs the demo-code box. `TS_MAIL_FAKE=1` pretends to send
 (tests) — never set it on the e2e/run-cloud backend or the demo code vanishes.
 
+**Activity / Notifications inbox:** header bell (`BellButton` in Chrome.jsx,
+both layouts) → `ActivitySheet` with **Requests** (pending sessions I can
+confirm across all shared plans, computed in the renderVals activity IIFE) +
+**Updates** feed. Cloud: server `activity` table (append-only); events are
+recorded inside `/plans/:id/notify` (added a `silent` flag so reactions/comments
+record without pushing) and on invite-accept ('joined'); `GET /activity`
+returns feed + unread (vs `users.activity_seen_at`), `POST /activity/seen`
+clears it. Client `recordActivity(type, id, loud)` → cloud `api.notify`
+(loud=push) or guest local `activityLog` (persisted). `refreshActivity` runs on
+load + the 20s poll. **Gotcha:** guard `refreshActivity`/`recordActivity` on
+`getToken()`, NOT `state.authed` — the setState in `loadCloudState` hasn't
+flushed yet when they first run. E2e: guest badge/feed in calendar.spec; cloud
+two-account confirm→inbox in cloud.spec. Note the cloud spec now waits for
+`'load'` not `'networkidle'` (the app polls, so the network never idles).
+
 **Tutor-side confirmation loop (cloud):** sessions carry `status`
 (pending/confirmed/declined/reschedule + `proposedDay`); `sessionStatus()`
 treats missing status as confirmed (back-compat with seeds). `saveSession`

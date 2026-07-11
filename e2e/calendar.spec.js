@@ -175,6 +175,31 @@ test('copied template carries its day notes', async ({ page }) => {
   await expect(page.getByText('บริบทที่แชร์ไป')).toBeVisible()
 })
 
+test('activity inbox: bell badge + local feed of your actions, clears on open', async ({ page }) => {
+  await seedSession(page)
+  await gotoApp(page)
+  await openPlan(page)
+
+  // book a session → logs a 'booked' activity locally
+  await tap(page.locator('button[aria-label="Add session"]'))
+  await tap(page.getByText('บันทึกคาบ · Book session 🎉'))
+  if (await page.getByText('เสร็จสิ้น').count()) await tap(page.getByText('เสร็จสิ้น'))
+  await page.waitForTimeout(400)
+
+  // the bell shows an unread badge
+  await expect(page.locator('button[aria-label="Notifications"] span').first()).toBeVisible()
+
+  // open the inbox → Updates feed lists the action
+  await tap(page.locator('button[aria-label="Notifications"]').first())
+  await expect(page.getByText('การแจ้งเตือน · Activity')).toBeVisible()
+  await expect(page.getByText('🔔 อัปเดต · Updates')).toBeVisible()
+  await expect(page.getByText(/จองคาบ/)).toBeVisible()
+
+  // closing clears the unread badge (marked seen)
+  await tap(page.locator('button[aria-label="Close"]').first())
+  await expect(page.locator('button[aria-label="Notifications"] span')).toHaveCount(0)
+})
+
 test('delete plan asks for confirmation before deleting', async ({ page }) => {
   await seedSession(page)
   await gotoApp(page)

@@ -72,6 +72,8 @@ export default class App extends React.Component {
     pushState: 'off', pushBusy: false,   // 'off' | 'enabled' | 'denied' | 'unsupported'
     exportOpen: false, deleteConfirmOpen: false,
     checklistDraft: '', linkDraft: '',
+    activityOpen: false, activity: [], activityUnread: 0,
+    activityLog: [], activitySeenAt: 0, // guest-mode local feed
   }
 
   cloud = false          // true once a reachable backend is confirmed
@@ -112,6 +114,8 @@ export default class App extends React.Component {
       theme: (saved && saved.theme) || 'coral',
       userName: (saved && saved.userName) || '',
       settingsFlags: (saved && saved.settingsFlags) || this.state.settingsFlags,
+      activityLog: (saved && saved.activityLog) || [],
+      activitySeenAt: (saved && saved.activitySeenAt) || 0,
       addDate: td, selDay: td, year: yr, month: mo,
       authed: !!sess, authEmail: sess || '',
       onboarding: !sess, onbStep: 0,
@@ -156,11 +160,12 @@ export default class App extends React.Component {
       onboarding: !user?.onboarded,   // server-tracked: show onboarding once
     })
     await this.consumeInviteFromUrl()
+    this.refreshActivity()
     // reflect any existing push subscription
     if (pushSupported) isSubscribed().then((on) => this.setState({ pushState: on ? 'enabled' : 'off' })).catch(() => {})
-    // light polling so a collaborator's edits show up (honest: polling, not sockets)
+    // light polling so a collaborator's edits + activity show up (honest: polling, not sockets)
     clearInterval(this._poll)
-    this._poll = setInterval(() => this.refreshCloud(), 20000)
+    this._poll = setInterval(() => { this.refreshCloud(); this.refreshActivity() }, 20000)
   }
 
   enablePush = async () => {
@@ -258,10 +263,10 @@ export default class App extends React.Component {
 
   persist() {
     if (this.cloud) { this.syncCloud(); return }
-    const { plans, market, theme, userName, settingsFlags, year, month } = this.state
+    const { plans, market, theme, userName, settingsFlags, year, month, activityLog, activitySeenAt } = this.state
     if (!plans) return
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ plans, market, theme, userName, settingsFlags, seedY: year, seedM: month }))
+      localStorage.setItem(STORE_KEY, JSON.stringify({ plans, market, theme, userName, settingsFlags, seedY: year, seedM: month, activityLog, activitySeenAt }))
     } catch (e) { /* storage full/blocked — demo continues in memory */ }
   }
 
@@ -492,6 +497,7 @@ export default class App extends React.Component {
       const plans = s.plans.map((p) => p.id === s.activePlanId ? { ...p, sessions: p.sessions.map((x) => { if (x.id !== id) return x; const r = { ...x.reactions }; if (r[emoji]) delete r[emoji]; else r[emoji] = 1; return { ...x, reactions: r } }) } : p)
       return { plans }
     })
+    this.recordActivity('reacted', id)
     this.showToast(emoji, 'รีแอคชันของคุณ · Reaction sent')
   }
 
@@ -502,6 +508,7 @@ export default class App extends React.Component {
       const plans = s.plans.map((p) => p.id === s.activePlanId ? { ...p, sessions: p.sessions.map((x) => x.id === s.selSlot ? { ...x, comments: [...x.comments, { author: 'You', initials: (s.userName || 'พ').charAt(0), color: this.theme().pc, text, time: 'now' }] } : x) } : p)
       return { plans, commentDraft: '' }
     })
+    this.recordActivity('commented', this.state.selSlot)
   }
 
   // A booking needs tutor confirmation only if a real tutor (another member)
@@ -541,13 +548,67 @@ export default class App extends React.Component {
       // Peloton-style confirmation instead of toast-only feedback
       return { plans, addOpen: false, dayOpen: false, booked: { subjKey, day: st.addDate, time: st.addTime, hours: st.addHours, cost, pending } }
     })
-    if (pending && this.cloud) this.notifyPlan('booked', newId)
+    this.recordActivity('booked', newId, pending) // loud (push) only when a tutor must confirm
   }
-  // fire a confirmation-loop notification after the plan doc has synced
-  notifyPlan(event, sessionId) {
-    if (!this.cloud) return
-    const id = this.state.activePlanId
-    setTimeout(() => { api.notify(id, event, sessionId).catch(() => {}) }, 500)
+  // fire a "loud" confirmation-loop notification (pushes to other members)
+  notifyPlan(event, sessionId) { this.recordActivity(event, sessionId, true) }
+
+  // record an event to the activity feed. loud=true also web-pushes (cloud).
+  recordActivity(type, sessionId, loud = false) {
+    if (this.cloud) {
+      if (!this.state.activePlanId || !getToken()) return
+      const id = this.state.activePlanId
+      // small delay so the plan doc has synced (server reads the session for its label)
+      setTimeout(() => { api.notify(id, type, sessionId, !loud).then(() => this.refreshActivity()).catch(() => {}) }, 500)
+      return
+    }
+    // guest: keep a local feed so the bell is alive offline
+    const plan = this.activePlan()
+    const s = plan && sessionId != null ? plan.sessions.find((x) => x.id === sessionId) : null
+    const cat = s && plan.categories[s.subj]
+    const label = cat ? (cat.th + ' · ' + cat.en) : (plan ? plan.name : '')
+    const item = { id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6), type, label, sessionId, createdAt: Date.now(), mine: true, actorName: this.state.userName || 'คุณ', planName: plan ? plan.name : '' }
+    this.setState((st) => ({ activityLog: [item, ...st.activityLog].slice(0, 60) }))
+  }
+
+  refreshActivity() {
+    if (!this.cloud || !getToken()) return // token, not state.authed (setState may not have flushed yet)
+    api.activity().then(({ activity, unread }) => this.setState({ activity, activityUnread: unread })).catch(() => {})
+  }
+  openActivity = () => {
+    this.setState({ activityOpen: true })
+    if (this.cloud) api.activitySeen().then(() => this.setState({ activityUnread: 0 })).catch(() => {})
+    else this.setState({ activitySeenAt: Date.now() })
+  }
+  closeActivity = () => this.setState({ activityOpen: false })
+  // confirm a pending session in ANY plan (used from the inbox Requests list)
+  confirmRequestFromInbox(planId, sessionId) {
+    this.setState((s) => ({ plans: s.plans.map((p) => p.id === planId ? { ...p, sessions: p.sessions.map((x) => x.id === sessionId ? { ...x, status: 'confirmed', proposedDay: null } : x) } : p) }))
+    if (this.cloud) setTimeout(() => { api.notify(planId, 'confirmed', sessionId).then(() => this.refreshActivity()).catch(() => {}) }, 500)
+    this.showToast('✅', 'ยืนยันคาบแล้ว · Session confirmed')
+  }
+  timeAgo(ms) {
+    const d = Math.max(0, Date.now() - ms)
+    if (d < 60000) return 'เมื่อสักครู่'
+    if (d < 3600000) return Math.floor(d / 60000) + ' นาที'
+    if (d < 86400000) return Math.floor(d / 3600000) + ' ชม.'
+    return Math.floor(d / 86400000) + ' วัน'
+  }
+  activityText(a) {
+    const who = a.mine ? 'คุณ' : (a.actorName || 'สมาชิก')
+    const L = a.label || a.planName || ''
+    switch (a.type) {
+      case 'booked': return { emoji: '📩', text: `${who}จองคาบ ${L}` }
+      case 'confirmed': return { emoji: '✅', text: `${who}ยืนยันคาบ ${L}` }
+      case 'declined': return { emoji: '🙏', text: `${who}ปฏิเสธคาบ ${L}` }
+      case 'proposed': return { emoji: '🗓️', text: `${who}เสนอเลื่อน ${L}` }
+      case 'accepted': return { emoji: '👍', text: `${who}ยอมรับการเลื่อน ${L}` }
+      case 'reacted': return { emoji: '❤️', text: `${who}รีแอคชันในคาบ ${L}` }
+      case 'commented': return { emoji: '💬', text: `${who}คอมเมนต์ในคาบ ${L}` }
+      case 'rescheduled': return { emoji: '🗓️', text: `${who}ย้ายคาบ ${L}` }
+      case 'joined': return { emoji: '🤝', text: `${a.actorName || 'สมาชิกใหม่'} เข้าร่วมแพลน ${a.planName || ''}` }
+      default: return { emoji: '🔔', text: L }
+    }
   }
 
   setSessionStatus(id, patch, event) {
@@ -877,6 +938,7 @@ export default class App extends React.Component {
       const plans = s.plans.map((p) => p.id === s.activePlanId ? { ...p, sessions: p.sessions.map((x) => x.id === id ? { ...x, day } : x) } : p)
       return { plans, reschedOpen: false, slotOpen: false }
     })
+    this.recordActivity('rescheduled', id)
     this.showToast('🗓️', 'ย้ายไปวันที่ ' + day + ' แล้ว · Rescheduled!')
   }
 
@@ -1424,6 +1486,36 @@ export default class App extends React.Component {
       sessionCount: plan ? plan.sessions.length : 0,
       members, invite: this.doInvite, inviteUrl: st.inviteUrl, cloud: this.cloud,
       tutorRequests, isTutorView: plan ? (this.cloud && !this.amOwner(plan)) : false,
+      // ---- activity / notifications inbox ----
+      ...(() => {
+        // pending sessions I (as a tutor member) can act on, across all shared plans
+        const requests = []
+        if (this.cloud) {
+          for (const p of plans) {
+            if (this.amOwner(p)) continue
+            for (const ses of (p.sessions || [])) {
+              if (this.sessionStatus(ses) !== 'pending') continue
+              const subj = (p.categories || {})[ses.subj] || {}
+              requests.push({
+                key: p.id + '-' + ses.id,
+                title: (subj.th || '') + ' · ' + (subj.en || ''),
+                sub: p.name + ' · วันที่ ' + ses.day + ' · ' + ses.time,
+                stripe: `width:4px;border-radius:3px;background:${subj.color || '#B0A4BC'};flex:none;align-self:stretch;`,
+                onOpen: () => this.setState({ activityOpen: false, screen: 'plan', activePlanId: p.id, tab: 'cal', theme: p.theme || st.theme, slotOpen: true, selSlot: ses.id }),
+                onConfirm: () => this.confirmRequestFromInbox(p.id, ses.id),
+              })
+            }
+          }
+        }
+        const raw = this.cloud ? st.activity : st.activityLog
+        const feed = (raw || []).map((a) => { const t = this.activityText(a); return { id: a.id, emoji: t.emoji, text: t.text, when: this.timeAgo(a.createdAt), unread: !a.mine && this.cloud ? false : false } })
+        const unread = this.cloud ? st.activityUnread : (st.activityLog || []).filter((a) => a.createdAt > st.activitySeenAt).length
+        return {
+          activityOpen: st.activityOpen, openActivity: this.openActivity, closeActivity: this.closeActivity,
+          activityUnread: unread, activityRequests: requests, activityFeed: feed,
+          activityEmpty: requests.length === 0 && feed.length === 0,
+        }
+      })(),
       messages, aiThinking: st.aiThinking, chips,
       chatInput: st.chatInput, setChatInput: (e) => this.setState({ chatInput: e.target.value }), chatKey: (e) => { if (e.key === 'Enter') this.sendChat() }, sendChat: this.sendChat,
       toast: st.toast,

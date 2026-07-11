@@ -692,6 +692,67 @@ export function SettingsSheet({ v }) {
   )
 }
 
+export function ActivitySheet({ v }) {
+  return (
+    <>
+      {scrim(v.closeActivity, 46)}
+      <SheetShell v={v} z={47} maxH="86%" width={460}>
+        <div style={sx('padding:14px 22px 6px;flex:none;')}>
+          {grabber(v)}
+          <div style={sx('display:flex;align-items:center;justify-content:space-between;')}>
+            {sheetTitle('การแจ้งเตือน · Activity')}
+            {closeBtn(v.closeActivity)}
+          </div>
+        </div>
+        <div style={sx('flex:1;overflow-y:auto;padding:6px 18px 20px;')}>
+          {v.activityRequests.length > 0 && (
+            <>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;color:#8A7C93;margin:6px 2px 9px;")}>⏳ คำขอที่รอคุณ · Requests</div>
+              <div style={sx('display:flex;flex-direction:column;gap:9px;margin-bottom:16px;')}>
+                {v.activityRequests.map((r) => (
+                  <div key={r.key} style={sx('display:flex;align-items:center;gap:11px;background:#FFF3E6;border-radius:16px;padding:11px 12px;')}>
+                    <div style={sx(r.stripe)} />
+                    <button onClick={r.onOpen} style={sx('flex:1;min-width:0;border:none;background:none;text-align:left;cursor:pointer;')}>
+                      <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;")}>{r.title}</div>
+                      <div style={sx('font-size:11px;font-weight:700;color:#B0A4BC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;')}>{r.sub}</div>
+                    </button>
+                    <button onClick={r.onConfirm} style={sx("border:none;border-radius:12px;background:#4FC7A8;color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12px;padding:8px 13px;cursor:pointer;flex:none;")}>ยืนยัน</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {v.activityFeed.length > 0 && (
+            <>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;color:#8A7C93;margin:6px 2px 9px;")}>🔔 อัปเดต · Updates</div>
+              <div style={sx('display:flex;flex-direction:column;gap:2px;')}>
+                {v.activityFeed.map((a) => (
+                  <div key={a.id} style={sx('display:flex;align-items:flex-start;gap:11px;padding:10px 6px;border-bottom:1px solid #F6EEFA;')}>
+                    <span style={sx('font-size:18px;flex:none;line-height:1.3;')}>{a.emoji}</span>
+                    <div style={sx('flex:1;min-width:0;')}>
+                      <div style={sx('font-family:\'Nunito\',sans-serif;font-weight:700;font-size:13px;color:#4A3F55;line-height:1.35;')}>{a.text}</div>
+                      <div style={sx('font-size:10.5px;font-weight:700;color:#C6B6D0;margin-top:1px;')}>{a.when}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {v.activityEmpty && (
+            <div style={sx('text-align:center;padding:40px 20px;')}>
+              <div style={sx('font-size:48px;')}>🔔</div>
+              <div style={sx("font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:15px;color:#8A7C93;margin-top:8px;")}>ยังไม่มีการแจ้งเตือน</div>
+              <div style={sx('font-size:12px;font-weight:700;color:#B8AAC4;margin-top:2px;line-height:1.4;')}>{v.cloud ? 'กิจกรรมของแพลนจะปรากฏที่นี่' : 'จอง รีแอคชัน หรือคอมเมนต์ แล้วจะเห็นที่นี่'}<br />Your plan activity will show up here</div>
+            </div>
+          )}
+        </div>
+      </SheetShell>
+    </>
+  )
+}
+
 export function ExportSheet({ v }) {
   const f = v.feedUrls
   return (
