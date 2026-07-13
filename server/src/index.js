@@ -8,6 +8,7 @@ import { vapidPublicKey, saveSubscription, removeSubscription, sendToUser, start
 import { reminderPayload, nextOccurrence } from './reminders.js'
 import { mailConfigured, sendOtpEmail } from './mail.js'
 import { planToICS } from './ics.js'
+import { runAgent, aiConfigured } from './ai/agent.js'
 
 const PORT = Number(process.env.PORT || 8791)
 const JWT_SECRET = process.env.TS_JWT_SECRET || 'tutorsync-dev-secret-change-me'
@@ -322,6 +323,22 @@ export const app = new Elysia()
         .run(id, JSON.stringify(item), item.author, email, now())
       return { item }
     }, { body: t.Object({ plan: t.Any() }) })
+
+    // ----- AI planning agent (GLM 5.2 via MaxPlus) -----
+    // Proxy so the API key stays server-side. Client sends its chat history +
+    // a compact plan-context snapshot; we run a grounded tool-using agent and
+    // return the reply + any UI actions. 503 when no key is configured, so the
+    // client falls back to its offline heuristic.
+    .post('/ai/chat', async ({ body, set }) => {
+      if (!aiConfigured()) { set.status = 503; return { error: 'ai_unconfigured' } }
+      try {
+        const out = await runAgent(body.messages || [], body.context || {})
+        return out
+      } catch (e) {
+        set.status = 502
+        return { error: 'ai_upstream', detail: String(e && e.message || e).slice(0, 200) }
+      }
+    }, { body: t.Object({ messages: t.Array(t.Any()), context: t.Optional(t.Any()) }) })
   )
 
 if (import.meta.main) {

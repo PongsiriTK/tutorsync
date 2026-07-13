@@ -210,9 +210,22 @@ Mobbin patterns (Duolingo brag cards, Opal "You did it!", Waterllama confetti).
 - [x] e2e: create plan → drop category target to 1 → book → celebration + card
       popup. 30 guest e2e green (28 server + 3 cloud unaffected). Deployed Netlify.
 
+### Phase 16 — Real AI agent: GLM 5.2 via MaxPlus (2026-07-14)
+Upgrade the assistant from offline heuristic to a real LLM agent, key server-side.
+- [x] Verified MaxPlus API (OpenAI-compatible; reasoning model; tool-call args
+      arrive malformed `"{}{...}"` → `parseToolArgs`).
+- [x] `server/src/ai/{prompt,tools,agent}.js` — global system prompt + skills +
+      tools (read + safe action tools) + agentic loop. `POST /ai/chat` auth-gated,
+      503 without key. Key in gitignored `.env` only.
+- [x] Client: `api.aiChat`, `buildAiContext`, cloud path with local fallback,
+      action chips (`runAiAction`), "✨ GLM 5.2" badge. Propose-not-act (user
+      confirms bookings).
+- [x] Tests: server unit (mocked upstream + parseToolArgs); cloud e2e fallback;
+      live HTTP smoke green. 30 server, 30 guest, 4 cloud e2e. Deployed.
+
 - [ ] Next Mobbin ideas (researched): "Today" home aggregation, post-booking
-      add-to-calendar. Also outstanding: live sockets vs polling, stable public
-      hostname, Resend key on jarvis.
+      add-to-calendar. Also: AI streaming (SSE) to mask 20–40s reasoning latency,
+      live sockets vs polling, stable public hostname, Resend key on jarvis.
 
 ## Validation
 

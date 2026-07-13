@@ -277,9 +277,18 @@ export function AiTab({ v }) {
   return (
     <div style={sx('display:flex;flex-direction:column;gap:11px;padding-top:2px;')}>
       {v.messages.map((msg) => (
-        <div key={msg.id} style={sx(msg.rowStyle)}>
-          {msg.isAi && <div style={sx('width:32px;height:32px;border-radius:12px;background:linear-gradient(135deg,#C9B6F7,#8FD0FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;')}>✨</div>}
-          <div style={sx(msg.bubbleStyle)}>{msg.text}</div>
+        <div key={msg.id}>
+          <div style={sx(msg.rowStyle)}>
+            {msg.isAi && <div style={sx('width:32px;height:32px;border-radius:12px;background:linear-gradient(135deg,#C9B6F7,#8FD0FF);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;')}>✨</div>}
+            <div style={sx(msg.bubbleStyle)}>{msg.text}</div>
+          </div>
+          {msg.actions && msg.actions.length > 0 && (
+            <div style={sx('display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 0 40px;')}>
+              {msg.actions.map((a, i) => (
+                <button key={i} onClick={a.onTap} style={sx(`border:none;border-radius:13px;background:linear-gradient(135deg,${v.g.pc},${v.g.pc2});color:#fff;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:12.5px;padding:9px 14px;cursor:pointer;box-shadow:0 6px 14px ${v.g.pcShadow};`)}>{a.label}</button>
+              ))}
+            </div>
+          )}
         </div>
       ))}
       {v.aiThinking && (
@@ -317,7 +326,8 @@ export function AiDock({ v }) {
 function AiDockInner({ v }) {
   return (
     <div>
-      <div style={sx('display:flex;gap:8px;overflow-x:auto;padding-bottom:9px;')}>
+      <div style={sx('display:flex;align-items:center;gap:8px;overflow-x:auto;padding-bottom:9px;')}>
+        <span style={sx(`flex:none;display:inline-flex;align-items:center;gap:4px;border-radius:12px;padding:6px 10px;font-family:'Baloo Thai 2',sans-serif;font-weight:800;font-size:11px;white-space:nowrap;${v.aiSmart ? 'background:linear-gradient(135deg,#C9B6F7,#8FD0FF);color:#fff;' : 'background:rgba(255,255,255,.9);color:#A99FB2;'}`)}>{v.aiSmart ? '✨ GLM 5.2' : '📴 ออฟไลน์'}</span>
         {v.chips.map((c, i) => (
           <button key={i} onClick={c.onTap} style={sx("flex:none;border:none;border-radius:14px;background:rgba(255,255,255,.92);color:#7A6C86;font-family:'Baloo Thai 2',sans-serif;font-weight:700;font-size:12.5px;padding:8px 13px;cursor:pointer;box-shadow:0 4px 12px rgba(180,120,150,.12);white-space:nowrap;")}>{c.label}</button>
         ))}

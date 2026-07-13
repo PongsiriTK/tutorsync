@@ -267,4 +267,61 @@ test('push endpoints require auth', async () => {
   expect(s1).toBe(401)
 })
 
+// ----- AI planning agent -----
+import { parseToolArgs } from '../src/ai/agent.js'
+
+test('parseToolArgs recovers the GLM malformed-args bug', () => {
+  expect(parseToolArgs('{"planName":"Physics"}')).toEqual({ planName: 'Physics' })
+  expect(parseToolArgs('{}{"planName":"Physics"}')).toEqual({ planName: 'Physics' }) // stray {} prefix
+  expect(parseToolArgs('{}{"count":2,"subject":"Math"}')).toEqual({ count: 2, subject: 'Math' })
+  expect(parseToolArgs('{}')).toEqual({})
+  expect(parseToolArgs('')).toEqual({})
+  expect(parseToolArgs('{"note":"has } brace in string"}')).toEqual({ note: 'has } brace in string' })
+})
+
+test('ai chat: 503 without a key; grounded reply + action with mocked upstream', async () => {
+  const tok = await signIn('ai@test.dev')
+  const ctx = {
+    activePlanName: 'Uni', today: { date: 5, daysInMonth: 31 },
+    plans: [{
+      id: 'p_ai1', name: 'Uni', en: 'Uni', goalType: 'budget', pct: 40, spent: 6000, budgetTotal: 15000, count: 8,
+      categories: [{ key: 'MATH', en: 'Math', th: 'คณิต', count: 2, target: 6, rate: 300 }],
+      upcoming: [{ day: 3, subj: 'MATH' }],
+    }],
+  }
+  const askBody = { messages: [{ isAi: false, text: 'เหลืองบเท่าไหร่ แล้วเปิดแพลนให้หน่อย' }], context: ctx }
+
+  // no key configured → 503 so the client falls back to the local heuristic
+  delete process.env.MAXPLUS_API_KEY
+  const [noKey] = await json(await call('/ai/chat', { method: 'POST', headers: authed(tok), body: askBody }))
+  expect(noKey).toBe(503)
+
+  // configure a key + mock the upstream; leave localhost calls untouched
+  process.env.MAXPLUS_API_KEY = 'test-key'
+  const realFetch = globalThis.fetch
+  let turn = 0
+  globalThis.fetch = async (url, opts) => {
+    if (!String(url).includes('maxplus')) return realFetch(url, opts)
+    turn++
+    const mk = (message) => new Response(JSON.stringify({ choices: [{ message, finish_reason: message.tool_calls ? 'tool_calls' : 'stop' }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } }), { status: 200, headers: { 'content-type': 'application/json' } })
+    if (turn === 1) {
+      return mk({ role: 'assistant', content: 'ขอเช็คงบก่อนนะคะ', tool_calls: [
+        { id: 'tc1', type: 'function', function: { name: 'get_plan', arguments: '{}{"planName":"Uni"}' } },
+        { id: 'tc2', type: 'function', function: { name: 'open_plan', arguments: '{}{"planName":"Uni"}' } },
+      ] })
+    }
+    return mk({ role: 'assistant', content: 'เหลืองบ ฿9,000 ค่ะ เปิดแพลน Uni ให้แล้วนะคะ 💛' })
+  }
+  try {
+    const [status, res] = await json(await call('/ai/chat', { method: 'POST', headers: authed(tok), body: askBody }))
+    expect(status).toBe(200)
+    expect(res.reply).toContain('9,000')
+    expect(res.actions.some((a) => a.type === 'open_plan' && a.planId === 'p_ai1')).toBe(true)
+    expect(res.model).toBe('glm-5.2')
+  } finally {
+    globalThis.fetch = realFetch
+    delete process.env.MAXPLUS_API_KEY
+  }
+})
+
 process.on('exit', () => { try { rmSync(process.env.TS_DB) } catch {} })

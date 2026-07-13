@@ -1028,14 +1028,82 @@ export default class App extends React.Component {
   // ---------- AI (local heuristic assistant) ----------
   sendChat = () => { const q = (this.state.chatInput || '').trim(); if (q) this.sendChatWith(q) }
   sendChatWith(q) {
-    this.setState((s) => ({ messages: [...s.messages, { id: Date.now(), isAi: false, text: q }], chatInput: '', aiThinking: true }))
-    const plan = this.activePlan()
-    const m = plan ? this.planMetric(plan) : null
+    const userMsg = { id: Date.now(), isAi: false, text: q }
+    const prior = this.state.messages
+    this.setState({ messages: [...prior, userMsg], chatInput: '', aiThinking: true })
+    // Cloud + signed-in → the real GLM 5.2 agent (grounded, tool-using). Guest or
+    // any failure → the offline heuristic, so the assistant always answers.
+    if (this.cloud && this.state.authed) {
+      api.aiChat([...prior, userMsg], this.buildAiContext())
+        .then(({ reply, actions }) => this.pushAiReply(reply, actions))
+        .catch(() => this.localReply(q))
+      return
+    }
     clearTimeout(this._aiT)
-    this._aiT = setTimeout(() => {
-      const reply = assistantReply(plan, m, q)
-      this.setState((s) => ({ messages: [...s.messages, { id: Date.now(), isAi: true, text: reply }], aiThinking: false }))
-    }, 800 + Math.random() * 500)
+    this._aiT = setTimeout(() => this.localReply(q), 800 + Math.random() * 500)
+  }
+  pushAiReply(text, actions) {
+    this.setState((s) => ({ messages: [...s.messages, { id: Date.now() + 1, isAi: true, text: text || '…', actions: actions || [] }], aiThinking: false }))
+  }
+  localReply(q) {
+    const plan = this.activePlan()
+    const reply = assistantReply(plan, plan ? this.planMetric(plan) : null, q)
+    this.setState((s) => ({ messages: [...s.messages, { id: Date.now() + 2, isAi: true, text: reply }], aiThinking: false }))
+  }
+
+  // Compact, token-bounded snapshot of the user's plans for the AI agent. Numbers
+  // are computed the same way the UI shows them, so the model stays grounded.
+  buildAiContext() {
+    const now = new Date()
+    const y = this.state.year, mo = this.state.month
+    const daysInMonth = new Date(y, mo + 1, 0).getDate()
+    const td = (now.getFullYear() === y && now.getMonth() === mo) ? now.getDate() : 1
+    const plans = (this.state.plans || []).map((p) => {
+      const m = this.planMetric(p)
+      const categories = Object.entries(p.categories || {}).map(([key, c]) => ({
+        key, en: c.en, th: c.th, target: c.target || 0, rate: c.rate || 0,
+        count: (p.sessions || []).filter((s) => s.subj === key).length,
+      }))
+      const upcoming = [...(p.sessions || [])]
+        .sort((a, b) => a.day - b.day).slice(0, 16)
+        .map((s) => ({ day: s.day, time: s.time, subj: s.subj, status: s.status || 'confirmed' }))
+      return {
+        id: p.id, name: p.name, en: p.en, emoji: p.emoji, goalType: p.goalType,
+        budgetTotal: p.budgetTotal, hoursGoal: p.hoursGoal,
+        spent: m.spent, hours: m.hours, count: m.count, pct: m.pct,
+        daysLeft: p.goalType === 'window' ? Math.max(0, (p.deadlineDays || 0) - (p.elapsedDays || 0)) : undefined,
+        categories, upcoming,
+      }
+    })
+    const active = this.activePlan()
+    return {
+      userName: this.state.userName || '',
+      activePlanName: active ? active.name : null,
+      today: {
+        date: td, daysInMonth,
+        dateLabel: td + ' ' + monthTH[mo], weekday: dowFullTH[new Date(y, mo, td).getDay()],
+        monthLabel: monthTH[mo],
+      },
+      plans,
+    }
+  }
+
+  // A tapped AI suggestion — open a plan, or pre-fill the booking sheet. Never
+  // books on its own; the user still confirms in the sheet.
+  runAiAction(a) {
+    if (!a) return
+    if (a.type === 'open_plan') {
+      if ((this.state.plans || []).some((p) => String(p.id) === String(a.planId))) this.openPlan(a.planId)
+    } else if (a.type === 'prefill_session') {
+      const plan = (this.state.plans || []).find((p) => String(p.id) === String(a.planId))
+      if (!plan) return
+      const subjKey = plan.categories[a.subjKey] ? a.subjKey : Object.keys(plan.categories)[0]
+      this.setState({
+        screen: 'plan', tab: 'cal', activePlanId: plan.id, theme: plan.theme,
+        addSubj: subjKey, addDate: a.day || this.state.addDate, addTime: a.time || '17:00–19:00',
+        addHours: a.hours || 2, addOpen: true, dayOpen: false,
+      })
+    }
   }
 
   // ---------- computed view values ----------
@@ -1244,12 +1312,16 @@ export default class App extends React.Component {
     }) : []
 
     // ---- AI ----
+    const actionLabel = (a) => a.type === 'open_plan' ? ('📂 เปิด ' + (a.planName || 'แพลน'))
+      : a.type === 'prefill_session' ? ('➕ จอง ' + (a.subject || 'คาบ') + (a.day ? ' · วันที่ ' + a.day : ''))
+      : '✨ ทำต่อ'
     const messages = st.messages.map((mm) => ({
       id: mm.id, isAi: mm.isAi, text: mm.text,
       rowStyle: `display:flex;gap:8px;align-items:flex-end;${mm.isAi ? '' : 'flex-direction:row-reverse;'}animation:ts-fadeup .3s ease both;`,
       bubbleStyle: mm.isAi
         ? `max-width:78%;background:#fff;border-radius:18px 18px 18px 6px;padding:12px 15px;box-shadow:0 6px 16px rgba(180,120,150,.12);font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;color:#4A3F55;line-height:1.4;white-space:pre-wrap;`
         : `max-width:80%;background:linear-gradient(135deg,${pt.pc},${pt.pc2});border-radius:18px 18px 6px 18px;padding:12px 15px;color:#fff;font-family:'Nunito',sans-serif;font-weight:700;font-size:13.5px;line-height:1.4;box-shadow:0 6px 16px ${pt.shadow};white-space:pre-wrap;`,
+      actions: (mm.actions || []).map((a) => ({ label: actionLabel(a), onTap: () => this.runAiAction(a) })),
     }))
     const chips = [
       { label: '💸 งบพอไหม?', q: 'ดูงบของแพลนนี้ให้หน่อย ยังเหลือพอถึงเป้าไหม?' },
@@ -1599,7 +1671,7 @@ export default class App extends React.Component {
           activityEmpty: requests.length === 0 && feed.length === 0,
         }
       })(),
-      messages, aiThinking: st.aiThinking, chips,
+      messages, aiThinking: st.aiThinking, chips, aiSmart: !!(this.cloud && st.authed),
       chatInput: st.chatInput, setChatInput: (e) => this.setState({ chatInput: e.target.value }), chatKey: (e) => { if (e.key === 'Enter') this.sendChat() }, sendChat: this.sendChat,
       toast: st.toast,
       pendingMove: st.pendingMove ? {

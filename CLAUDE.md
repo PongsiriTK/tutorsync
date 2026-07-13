@@ -74,6 +74,32 @@ key. Client keys off `r.emailed && !r.demoCode` → `state.authEmailed` → Auth
 shows "check your email" vs the demo-code box. `TS_MAIL_FAKE=1` pretends to send
 (tests) — never set it on the e2e/run-cloud backend or the demo code vanishes.
 
+**AI planning agent (GLM 5.2 · MaxPlus):** cloud-only real-LLM assistant behind
+an authenticated proxy so the key never touches the client. Server `server/src/ai/`:
+`prompt.js` (global system prompt + persona "น้องซิงก์" + SKILLS catalog + a compact
+plan-context snapshot injected for grounding), `tools.js` (OpenAI tool schemas +
+executors over the client-sent `ctx` — read tools `list_plans`/`get_plan`/
+`find_free_days`; action tools `open_plan`/`prefill_booking` return a client
+`action`, never mutate), `agent.js` (`runAgent` loop, max 4 steps, forces a text
+turn last). **Provider quirks handled:** GLM 5.2 is a reasoning model
+(`reasoning_content`, needs `max_tokens`≥~1500 — set 1800) and its tool-call
+`arguments` arrive malformed as `"{}{...}"` → `parseToolArgs()` recovers them
+(brace-scan, string-aware). Endpoint `POST /ai/chat` (auth-gated) → `{reply,
+actions, usage, model}`; 503 when `MAXPLUS_API_KEY` unset. Env: `MAXPLUS_API_KEY`
+(+ optional `MAXPLUS_BASE_URL` default `https://api.maxplus-ai.cc/deepseek/v1`,
+`MAXPLUS_MODEL` default `glm-5.2`). **Client:** `App.sendChatWith` → cloud+authed
+calls `api.aiChat(history, buildAiContext())`; `buildAiContext()` mirrors the UI's
+numbers so the model stays grounded; AI `actions` render as tappable chips
+(`runAiAction` → openPlan / pre-filled Add sheet, user still confirms). Any
+failure/guest/offline → `localReply` (the offline heuristic in `src/ai.js`), so the
+assistant always answers. `aiSmart` (cloud+authed) drives the "✨ GLM 5.2" badge.
+**Latency ~20–40s** (reasoning) — the typing indicator covers it; `api.aiChat`
+uses a 75s timeout. **Secrets:** key lives ONLY in gitignored `server/.env`
+(local) + jarvis `~/tutorsync-server/.env` (rsync `--exclude .env` never wipes or
+ships it). e2e: `run-cloud.sh` forces `MAXPLUS_API_KEY=` so `/ai/chat` 503s and the
+cloud spec tests the deterministic fallback (no token spend). Server unit test
+mocks the upstream + covers `parseToolArgs`.
+
 **Goal-completion celebration:** `saveSession` calls `milestoneFor(plan, subjKey,
 addHours, cost)` (on the plan BEFORE the add) which returns a payload if the new
 session crosses a category target or completes the whole plan (`hours` plans →

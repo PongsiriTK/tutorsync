@@ -86,6 +86,19 @@ test('real invite: owner shares a plan; invitee joins and sees the same sessions
   await ownerCtx.close(); await guestCtx.close()
 })
 
+test('signed-in AI assistant: cloud proxy path answers (falls back to local heuristic when key off)', async ({ page }) => {
+  test.skip(!API, 'cloud API not configured')
+  await signInFresh(page, `ai_${Date.now()}@e2e.dev`)
+  await tap(page.getByText('University Entrance Prep'))
+  await tap(page.getByText('ผู้ช่วย', { exact: true })) // AI tab
+  // signed-in cloud users see the smart-mode badge
+  await expect(page.getByText('✨ GLM 5.2')).toBeVisible()
+  // ask via a suggestion chip → the client calls /ai/chat; with the key off in
+  // e2e it 503s and gracefully falls back to the grounded local heuristic.
+  await tap(page.getByText('💸 งบพอไหม?'))
+  await expect(page.getByText(/ใช้ไป ฿[\d,]+ จากงบ|เหลือ ฿/)).toBeVisible({ timeout: 15000 })
+})
+
 test('tutor-side confirmation loop: pending → tutor confirms → owner sees confirmed', async ({ browser }) => {
   test.skip(!API, 'cloud API not configured')
   const ownerCtx = await browser.newContext()

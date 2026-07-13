@@ -12,14 +12,18 @@ export const apiBase = API_BASE
 export function getToken() { try { return localStorage.getItem(TOKEN_KEY) || '' } catch { return '' } }
 export function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY) } catch { /* noop */ } }
 
-async function req(path, { method = 'GET', body, auth = true } = {}) {
+async function req(path, { method = 'GET', body, auth = true, timeout = 0 } = {}) {
   const headers = { 'content-type': 'application/json' }
   if (auth) { const t = getToken(); if (t) headers.authorization = 'Bearer ' + t }
-  const res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined })
-  let data = null
-  try { data = await res.json() } catch { /* non-json */ }
-  if (!res.ok) { const e = new Error((data && data.error) || 'http_' + res.status); e.status = res.status; e.data = data; throw e }
-  return data
+  let signal, to
+  if (timeout > 0) { const ctrl = new AbortController(); signal = ctrl.signal; to = setTimeout(() => ctrl.abort(), timeout) }
+  try {
+    const res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, signal })
+    let data = null
+    try { data = await res.json() } catch { /* non-json */ }
+    if (!res.ok) { const e = new Error((data && data.error) || 'http_' + res.status); e.status = res.status; e.data = data; throw e }
+    return data
+  } finally { if (to) clearTimeout(to) }
 }
 
 // probe with a short timeout so a dead backend degrades to guest mode fast
@@ -45,6 +49,7 @@ export const api = {
   invite: (id) => req('/plans/' + id + '/invite', { method: 'POST' }),
   acceptInvite: (token) => req('/invites/' + token + '/accept', { method: 'POST' }),
   notify: (id, event, sessionId, silent) => req('/plans/' + id + '/notify', { method: 'POST', body: { event, sessionId, silent: !!silent } }),
+  aiChat: (messages, context) => req('/ai/chat', { method: 'POST', body: { messages, context }, timeout: 75000 }),
   activity: () => req('/activity'),
   activitySeen: () => req('/activity/seen', { method: 'POST' }),
   likeMarket: (id) => req('/market/' + id + '/like', { method: 'POST' }),

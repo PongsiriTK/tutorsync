@@ -14,7 +14,9 @@ cleanup() { kill ${API_PID:-} ${WEB_PID:-} 2>/dev/null || true; rm -f server/dat
 trap cleanup EXIT
 
 echo "▶ starting backend on :${API_PORT}"
-( cd server && TS_DB="./data/e2e-$(date +%s).sqlite" PORT=$API_PORT bun run src/index.js ) &
+# Force the AI key OFF for e2e so /ai/chat returns 503 and the client exercises
+# its deterministic local-heuristic fallback (no real GLM calls / token spend).
+( cd server && MAXPLUS_API_KEY= TS_DB="./data/e2e-$(date +%s).sqlite" PORT=$API_PORT bun run src/index.js ) &
 API_PID=$!
 for i in $(seq 1 40); do curl -sf "$API_URL/health" >/dev/null 2>&1 && break; sleep 0.25; done
 

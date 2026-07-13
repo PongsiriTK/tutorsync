@@ -57,8 +57,14 @@ template galleries).
 - 🤝 **Team view** — instructors, rates, presence, invite link; **assign any
   category to a teammate** ("Taught by" picker in plan settings — e.g. hand
   English to Ms. Lisa and she joins the team, legend and session details)
-- ✨ **AI planning assistant** — local heuristic assistant that answers from
-  your real plan data (budget left, lagging categories, session suggestions)
+- ✨ **AI planning assistant ("น้องซิงก์")** — in cloud mode, a real LLM agent
+  (**GLM 5.2 via MaxPlus AI**) with a professional system prompt, **skills**, and
+  **tool-calling**: it reads your real plan data (budget, lagging categories,
+  free days) through tools so answers stay grounded, and can **propose** actions
+  you confirm — open a plan, or pre-fill the booking sheet (it never books
+  silently). The API key stays server-side behind an authenticated proxy
+  (`POST /ai/chat`). Guest/offline (or if the key is unset) falls back to a local
+  heuristic, so the assistant always answers.
 - ☁️ **Cloud mode** (optional backend) — real passwordless accounts (OTP+JWT),
   cross-device sync, and **real invite links**: share a plan and another
   account joins the *same* plan, seeing your sessions and edits. Falls back to
